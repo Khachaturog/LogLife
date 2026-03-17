@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Box, Button, Checkbox, Flex, Heading, RadioGroup, Select, Text, TextArea, TextField } from '@radix-ui/themes'
+import { Box, Button, Checkbox, Flex, Heading, IconButton, RadioGroup, Select, Text, TextArea, TextField } from '@radix-ui/themes'
 import { AppBar } from '@/components/AppBar'
-import { Pencil1Icon } from '@radix-ui/react-icons'
+import { PageLoading } from '@/components/PageLoading'
+import { CheckIcon, Pencil1Icon, TrashIcon } from '@radix-ui/react-icons'
 import { api } from '@/lib/api'
 import type { BlockConfig, BlockRow, DeedWithBlocks, RecordAnswerRow, RecordWithAnswers, ValueJson } from '@/types/database'
 import { DatePicker } from '@/components/DatePicker'
 import { DurationInput } from '@/components/DurationInput'
 import { formatAnswer } from '@/lib/format-utils'
+import layoutStyles from '@/styles/layout.module.css'
 import styles from './RecordViewPage.module.css'
 
 function getBlockOptions(block: BlockRow): { id: string; label: string }[] {
@@ -272,11 +274,7 @@ export function RecordViewPage() {
   }
 
   if (loading) {
-    return (
-      <Box p="4">
-        <Text>Загрузка…</Text>
-      </Box>
-    )
+    return <PageLoading title="Запись" />
   }
 
   const backLink = fromHistory ? '/history' : (record?.deed_id ? `/deeds/${record.deed_id}` : '/')
@@ -293,35 +291,63 @@ export function RecordViewPage() {
   }
 
   return (
-    <Box p="4" className={styles.container}>
-      <AppBar backHref={backLink} title={`${record.record_date} ${record.record_time?.slice(0, 5) ?? ''}`} />
+    <Box className={layoutStyles.pageContainer}>
+      <AppBar
+        backHref={editing ? undefined : backLink}
+        onBack={editing ? () => setEditing(false) : undefined}
+        title={`${record.record_date} ${record.record_time?.slice(0, 5) ?? ''}`}
+        actions={
+          editing ? (
+            <IconButton 
+            variant="classic" 
+            color="accent" 
+            radius='full'
+            size="3" 
+            onClick={handleSave} 
+            disabled={saving} 
+            aria-label={saving ? 'Сохранение…' : 'Сохранить'}
+            >
+              <CheckIcon width={18} height={18} />
+            </IconButton>
+          ) : (
+            <>
+              <IconButton 
+              variant="classic" 
+              color="accent" 
+              radius='full' 
+              size="3" 
+              onClick={() => setEditing(true)} 
+              aria-label="Редактировать">
+                <Pencil1Icon width={18} height={18} />
+              </IconButton>
 
-      <Flex gap="2" mb="4" mt="2" wrap="wrap">
-        {!editing ? (
-          <>
-            <Button variant="soft" onClick={() => setEditing(true)}>
-              <Pencil1Icon /> Редактировать
-            </Button>
-            <Button variant="soft" color="red" onClick={handleDelete}>Удалить</Button>
-            {hasBlocksToUpdate && (
-              <Button
-                variant="soft"
-                disabled={!hasAnyValidDraft || savingOutdated}
-                onClick={handleUpdateAllOutdated}
-              >
-                {savingOutdated ? 'Сохранение…' : 'Актуализировать'}
-              </Button>
-            )}
-          </>
-        ) : (
-          <>
-            <Button variant="soft" onClick={() => setEditing(false)}>Отмена</Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Сохранение…' : 'Сохранить'}
-            </Button>
-          </>
-        )}
-      </Flex>
+              <IconButton 
+              variant="classic" 
+              radius='full' size="3" 
+              color="red" 
+              onClick={handleDelete} 
+              aria-label="Удалить">
+                <TrashIcon width={18} height={18} />
+              </IconButton>
+            </>
+          )
+        }
+      />
+
+      {/* Актуализировать — только в режиме просмотра при устаревших блоках */}
+      {!editing && hasBlocksToUpdate && (
+        <Flex gap="2" mb="4" mt="2" wrap="wrap">
+          <Button
+            size="3"
+            color="gray"
+            variant="surface"
+            disabled={!hasAnyValidDraft || savingOutdated}
+            onClick={handleUpdateAllOutdated}
+          >
+            {savingOutdated ? 'Сохранение…' : 'Актуализировать'}
+          </Button>
+        </Flex>
+      )}
 
       {editing ? (
         <Flex direction="column" gap="4">
@@ -330,6 +356,7 @@ export function RecordViewPage() {
               <Text size="2" weight="medium">Дата</Text>
               <DatePicker value={recordDate} onChange={setRecordDate} />
             </Flex>
+
             <Flex direction="column" gap="1" className={styles.dateTimeField}>
               <Text size="2" weight="medium">Время</Text>
               <TextField.Root
@@ -338,6 +365,7 @@ export function RecordViewPage() {
                 onChange={(e) => setRecordTime(e.target.value)}
               />
             </Flex>
+            
           </Flex>
 
           {blocks.filter((b) => !b.deleted_at).map((block) => (

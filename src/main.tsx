@@ -1,21 +1,27 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { ThemeProvider } from 'next-themes'
 import { Theme } from '@radix-ui/themes'
+import '@/styles/global.css'
 import '@radix-ui/themes/styles.css'
 import 'air-datepicker/air-datepicker.css'
 import '@/styles/air-datepicker-overrides.css'
 import { AuthProvider } from '@/lib/auth-context'
+import { Agentation } from 'agentation'
 import App from './App'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Theme accentColor="indigo" grayColor="slate" radius="large" scaling="100%">
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </BrowserRouter>
-    </Theme>
+    <ThemeProvider defaultTheme="system" attribute="class" storageKey="log-life-theme">
+      <Theme accentColor="indigo" grayColor="slate" radius="large" scaling="100%">
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
+          <AuthProvider>
+            <App />
+            {import.meta.env.DEV && <Agentation endpoint="http://localhost:4747" />}
+          </AuthProvider>
+        </BrowserRouter>
+      </Theme>
+    </ThemeProvider>
   </StrictMode>,
 )

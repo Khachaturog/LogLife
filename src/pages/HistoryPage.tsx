@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Box, Flex, Heading, Text } from '@radix-ui/themes'
+import { Badge, Box, Flex, Text } from '@radix-ui/themes'
+import { AppBar } from '@/components/AppBar'
+import { PageLoading } from '@/components/PageLoading'
 import { api } from '@/lib/api'
 import { RecordCard } from '@/components/RecordCard'
 import type { BlockRow, RecordRow } from '@/types/database'
 import { formatDate, pluralRecords } from '@/lib/format-utils'
-import styles from './HistoryPage.module.css'
+import layoutStyles from '@/styles/layout.module.css'
 
 type RecordWithDeed = (RecordRow & { record_answers?: { block_id: string; value_json: unknown }[] }) & {
   deed?: { emoji: string; name: string; blocks?: BlockRow[] }
@@ -71,11 +73,7 @@ export function HistoryPage() {
 
   // --- Рендер состояний ---
   if (loading) {
-    return (
-      <Box p="4">
-        <Text>Загрузка…</Text>
-      </Box>
-    )
+    return <PageLoading title="История" />
   }
 
   if (error) {
@@ -88,22 +86,40 @@ export function HistoryPage() {
 
   // --- Основной контент ---
   return (
-    <Box p="4" className={styles.container}>
-      <Heading size="4" mb="4">
-        История — {pluralRecords(recordsWithDeed.length)}
-      </Heading>
+    <Box className={layoutStyles.pageContainer}>
+      <AppBar title={`История`} 
+      actions={
+        <Badge 
+        size="2" 
+        color="gray" 
+        variant="soft"
+        radius="full"
+        >
+          {pluralRecords(recordsWithDeed.length)}
+        </Badge>
+      } />
 
       {byDate.length === 0 ? (
         <Text as="p" color="gray">
           Пока нет записей. Добавьте первую в любом деле.
         </Text>
       ) : (
-        <Flex direction="column" gap="4">
+        <Flex direction="column" gap="4" mt="2">
           {byDate.map(([date, records]) => (
             <Box key={date}>
-              <Text as="p" weight="medium" size="2" mb="2">
-                {formatDate(date)} ({records.length})
-              </Text>
+              <Flex justify="between" align="center" gap="2" mb="2">
+                <Text weight="medium">
+                  {formatDate(date)}
+                </Text>
+                <Badge 
+                size="1" 
+                color="gray" 
+                variant="soft"
+                radius="full"
+                >
+                  {records.length}
+                </Badge>
+              </Flex>
               <Flex direction="column" gap="2">
                 {records.map((rec) => (
                   <RecordCard

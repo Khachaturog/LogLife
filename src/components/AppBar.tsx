@@ -1,7 +1,20 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Box, Button, Flex, Link as RadixLink, Text } from '@radix-ui/themes'
+import { Box, Flex, IconButton, Text } from '@radix-ui/themes'
 import { ArrowLeftIcon } from '@radix-ui/react-icons'
 import styles from './AppBar.module.css'
+
+/** При скролле страницы — true (для обводки и тени AppBar) */
+function useScrolled(): boolean {
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 5)
+    handleScroll() // начальное состояние
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+  return scrolled
+}
 
 export interface AppBarProps {
   /** URL для кнопки «Назад» (Link) */
@@ -10,45 +23,57 @@ export interface AppBarProps {
   onBack?: () => void
   /** Заголовок в центре */
   title?: string
-  /** Дополнительные действия справа */
-  children?: React.ReactNode
+  /** Кнопки и другие действия справа */
+  actions?: React.ReactNode
 }
 
 /**
  * Верхняя панель для внутренних страниц и форм.
  * Показывает кнопку «Назад» и опционально заголовок.
  */
-export function AppBar({ backHref, onBack, title, children }: AppBarProps) {
+export function AppBar({ backHref, onBack, title, actions }: AppBarProps) {
   const showBack = backHref != null || onBack != null
+  const scrolled = useScrolled()
 
   return (
-    <Box className={styles.appBar} asChild>
+    <Box className={`${styles.appBar} ${scrolled ? styles.appBarScrolled : ''}`} asChild>
       <header>
         <Flex align="center" gap="3" className={styles.row}>
-          <Flex align="center" style={{ flexShrink: 0 }}>
-            {showBack &&
-              (backHref != null ? (
-                <RadixLink asChild>
-                  <Link to={backHref} className={styles.backLink} aria-label="Назад">
+          {/* Контейнер «Назад» рендерим только при наличии кнопки — иначе gap смещает заголовок */}
+          {showBack && (
+            <Flex align="center" style={{ flexShrink: 0 }}>
+              {backHref != null ? (
+                <IconButton 
+                variant="classic"
+                color="gray" 
+                radius='full' 
+                size="3" 
+                asChild aria-label="Назад">
+                  <Link to={backHref}>
                     <ArrowLeftIcon width={18} height={18} />
-                    <span>Назад</span>
                   </Link>
-                </RadixLink>
+                </IconButton>
               ) : (
-                <Button variant="ghost" size="2" onClick={onBack} aria-label="Назад" className={styles.backButton}>
+                <IconButton 
+                variant="classic"
+                color="gray" 
+                radius='full' 
+                size="3" 
+                onClick={onBack} 
+                aria-label="Назад">
                   <ArrowLeftIcon width={18} height={18} />
-                  <span>Назад</span>
-                </Button>
-              ))}
-          </Flex>
+                </IconButton>
+              )}
+            </Flex>
+          )}
           {title && (
-            <Text size="2" weight="medium" className={styles.title} truncate>
+            <Text size="5" weight="medium" className={styles.title} truncate>
               {title}
             </Text>
           )}
-          {children && (
+          {actions && (
             <Flex align="center" gap="2" style={{ flexShrink: 0 }} className={styles.actions}>
-              {children}
+              {actions}
             </Flex>
           )}
         </Flex>

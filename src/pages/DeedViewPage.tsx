@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { Box, Button, Flex, Heading, Text } from '@radix-ui/themes'
+import { Box, DropdownMenu, Flex, Heading, IconButton, Text } from '@radix-ui/themes'
 import { AppBar } from '@/components/AppBar'
-import { Pencil1Icon, PlusIcon, TrashIcon } from '@radix-ui/react-icons'
+import { PageLoading } from '@/components/PageLoading'
+import { DotsHorizontalIcon, Pencil1Icon, PlusIcon, TrashIcon } from '@radix-ui/react-icons'
 import { api } from '@/lib/api'
 import { RecordCard } from '@/components/RecordCard'
 import type { DeedWithBlocks, RecordRow } from '@/types/database'
+import layoutStyles from '@/styles/layout.module.css'
 import styles from './DeedViewPage.module.css'
 import { formatDate, pluralRecords, pluralDays } from '@/lib/format-utils'
 import { currentStreak, maxStreak, workdayWeekendCounts } from '@/lib/deed-analytics'
@@ -86,11 +88,7 @@ export function DeedViewPage() {
 
   // --- Рендер состояний загрузки и ошибки ---
   if (loading) {
-    return (
-      <Box p="4">
-        <Text>Загрузка…</Text>
-      </Box>
-    )
+    return <PageLoading backHref="/" title="Дело" />
   }
 
   if (error || !deed) {
@@ -104,13 +102,40 @@ export function DeedViewPage() {
     )
   }
 
-  // --- Основной контент (кнопка «Назад» только в нижней панели) ---
+  // --- Основной контент ---
   return (
-    <Box p="4" className={styles.container}>
-      {/* Заголовок: эмодзи, название, категория */}
-      <Heading size="6" mb="1">
-        {deed.emoji} {deed.name}
-      </Heading>
+    <Box className={layoutStyles.pageContainer}>
+      <AppBar
+        backHref="/"
+        title={`${deed.emoji} ${deed.name}`}
+        actions={
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
+              <IconButton variant="classic" color="gray" size="3" radius="full" aria-label="Действия">
+                <DotsHorizontalIcon width={18} height={18} />
+              </IconButton>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content>
+              <DropdownMenu.Item asChild>
+                <Link to={`/deeds/${id}/fill`}>
+                  <PlusIcon /> Добавить
+                </Link>
+              </DropdownMenu.Item>
+              <DropdownMenu.Item asChild>
+                <Link to={`/deeds/${id}/edit`}>
+                  <Pencil1Icon /> Редактировать
+                </Link>
+              </DropdownMenu.Item>
+              <DropdownMenu.Separator />
+              <DropdownMenu.Item color="red" onSelect={handleDelete}>
+                <TrashIcon /> Удалить
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        }
+      />
+
+      {/* Категория и описание */}
       {deed.category && (
         <Text as="p" size="2" color="gray" mb="2">
           Категория: {deed.category}
@@ -121,29 +146,6 @@ export function DeedViewPage() {
           {deed.description}
         </Text>
       )}
-
-      {/* Действия: добавить запись, редактировать, удалить */}
-      <Flex gap="2" mb="4" wrap="wrap">
-        <Button asChild size="2">
-          <Link to={`/deeds/${id}/fill`}>
-            <PlusIcon /> Добавить
-          </Link>
-        </Button>
-        <Button asChild variant="soft" size="2">
-          <Link to={`/deeds/${id}/edit`}>
-            <Pencil1Icon /> Редактировать
-          </Link>
-        </Button>
-        <Button
-          variant="soft"
-          color="red"
-          size="2"
-          onClick={handleDelete}
-          aria-label="Удалить дело"
-        >
-          <TrashIcon /> Удалить
-        </Button>
-      </Flex>
 
       {/* Блок аналитики: стрики и рабочие/выходные дни */}
       {analytics && (
@@ -184,6 +186,7 @@ export function DeedViewPage() {
                     key={rec.id}
                     record={rec}
                     blocks={deed.blocks ?? []}
+                    avatarFallback={deed.emoji}
                   />
                 ))}
               </Flex>

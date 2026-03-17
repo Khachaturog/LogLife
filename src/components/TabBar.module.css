@@ -1,9 +1,9 @@
 /* Обёртка: кнопка назад + панель */
 .barWrapper {
-  max-width: 600px;
+  max-width: 382px;
   margin: 0 auto;
   position: fixed;
-  bottom: var(--space-4);
+  bottom: 2px;
   left: var(--space-4);
   right: var(--space-4);
   display: flex;
@@ -35,15 +35,17 @@
 
 /* Плавающая нижняя панель (механика iOS 26, стиль Radix) */
 .tabBar {
-  height: 48px;
+  /* height: 56px; */
+  padding: var(--space-1);
   flex: 1;
   display: flex;
-  justify-content: space-around;
-  align-items: center;  
+  /* justify-content: space-around; */
+  /* align-items: center;   */
   background: var(--color-panel-solid);
-  border: 1px solid var(--gray-a6);
-  border-radius: var(--radius-4);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  /* backdrop-filter: blur(10px); */
+  border: 1px solid var(--gray-a4);
+  border-radius: var(--radius-thumb);
+  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); */
 }
 
 /* Пункт панели */
@@ -54,18 +56,23 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-1);
+  padding: var(--space-2);
   color: var(--gray-11);
   text-decoration: none;
   font-size: 11px;
-  border-radius: var(--radius-2);
+  /* border-radius: var(--radius-2); */
   transition: color 0.15s ease;
 }
 
 .tab:hover {
-  color: var(--gray-12);
+  color: var(--black-12);
+  /* font-weight: 400; */
 }
 
 .tabActive {
-  color: var(--accent-11);
+  color: var(--accent-10);
+  background: var(--gray-a3);
+  /* font-weight: 500; */
+  /* backdrop-filter: blur(10px); */
+  border-radius: var(--radius-thumb);
 }

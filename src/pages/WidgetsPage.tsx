@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
-import { Box, Flex, Heading, Link as RadixLink, Text } from '@radix-ui/themes'
-import styles from './WidgetsPage.module.css'
+import { Avatar, Box, Card, Flex, Link as RadixLink, Text } from '@radix-ui/themes'
+import { AppBar } from '@/components/AppBar'
+import layoutStyles from '@/styles/layout.module.css'
 
 /**
  * Страница виджетов.
@@ -8,24 +9,28 @@ import styles from './WidgetsPage.module.css'
  */
 export function WidgetsPage() {
   return (
-    <Box p="4" className={styles.container}>
-      <Heading size="4" mb="4">
-        Виджеты
-      </Heading>
+    <Box className={layoutStyles.pageContainer}>
+      <AppBar title="Виджеты" />
+
       <Flex direction="column" gap="3">
-        <RadixLink asChild>
-          <Link
-            to="/widgets/clicker"
-            className={styles.widgetLink}
-          >
-            <Text weight="medium" size="3">
-              Кликер
-            </Text>
-            <Text as="p" size="2" color="gray" mt="1">
-              Счётчик нажатий с сохранением в дело
-            </Text>
+
+        <Card asChild>
+          <Link to="/widgets/clicker">
+              <Flex align="start" gap="2">
+                <Avatar 
+                size="4" 
+                radius="large" 
+                color="gray" 
+                variant="soft" 
+                fallback="🔢" />
+                <Flex direction="column" gap="0">
+                  <Text weight="medium">Кликер</Text>
+                  <Text as="p" size="2" color="gray">Счетчик нажатий с сохранением в дело</Text>
+                </Flex>
+              </Flex>
           </Link>
-        </RadixLink>
+        </Card>
+
       </Flex>
     </Box>
   )

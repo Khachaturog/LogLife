@@ -52,6 +52,7 @@ export function DurationInput({
 
   return (
     <TextField.Root
+      size="3"
       type="text"
       id={id}
       inputMode="numeric"

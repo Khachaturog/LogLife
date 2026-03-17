@@ -1,0 +1,8 @@
+/* Сброс margin у html/body — браузеры по умолчанию добавляют 8px к body,
+ * что даёт лишние отступы поверх pageContainer (16px). */
+html,
+body {
+  margin: 0;
+  /* Резервируем место под вертикальный скроллбар, чтобы контент не скакал */
+  scrollbar-gutter: stable both-edges;
+}

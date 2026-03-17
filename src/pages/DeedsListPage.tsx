@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Box, Button, Flex, Heading, Link as RadixLink, Text } from '@radix-ui/themes'
+import { Box, Button, Flex, IconButton, Link as RadixLink, Text } from '@radix-ui/themes'
+import { AppBar } from '@/components/AppBar'
+import { PageLoading } from '@/components/PageLoading'
+import { PlusIcon } from '@radix-ui/react-icons'
 import { api } from '@/lib/api'
 import { DeedCard } from '@/components/DeedCard'
 import type { DeedWithBlocks } from '@/types/database'
-import styles from './DeedsListPage.module.css'
+import layoutStyles from '@/styles/layout.module.css'
 import type { RecordRow, RecordAnswerRow } from '@/types/database'
 
 /**
@@ -76,11 +79,7 @@ export function DeedsListPage() {
 
   // --- Рендер состояний загрузки и ошибки ---
   if (deedsLoading) {
-    return (
-      <Box p="4">
-        <Text>Загрузка…</Text>
-      </Box>
-    )
+    return <PageLoading title="Дела" />
   }
 
   if (error) {
@@ -93,21 +92,23 @@ export function DeedsListPage() {
 
   // --- Основной контент ---
   return (
-    <Box p="4" className={styles.container}>
-      {/* Шапка: заголовок + кнопка создания */}
-      <Flex align="center" justify="between" mb="4" gap="3">
-        <Heading size="4">Дела</Heading>
-        <Button asChild>
-          <Link to="/deeds/new">Создать</Link>
-        </Button>
-      </Flex>
+    <Box className={layoutStyles.pageContainer}>
+      <AppBar 
+      title="Дела" 
+      actions={
+      <IconButton size="3" color="accent" variant="classic" radius="full" asChild aria-label="Создать дело">
+        <Link to="/deeds/new">
+          <PlusIcon width={18} height={18} />
+        </Link>
+      </IconButton>} />
 
       {/* Фильтр по категориям (скрыт, если нет дел или категорий) */}
       {deeds.length > 0 && categories.length > 0 && (
         <Flex gap="2" mb="4" wrap="wrap">
           <Button
             type="button"
-            variant={selectedCategory === null ? 'solid' : 'outline'}
+            color='gray'
+            variant={selectedCategory === null ? 'classic' : 'soft'}
             size="2"
             onClick={() => setSelectedCategory(null)}
           >
@@ -117,7 +118,8 @@ export function DeedsListPage() {
             <Button
               key={cat}
               type="button"
-              variant={selectedCategory === cat ? 'solid' : 'outline'}
+              color='gray'
+              variant={selectedCategory === cat ? 'classic' : 'soft'}
               size="2"
               onClick={() => setSelectedCategory(cat)}
             >

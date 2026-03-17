@@ -1,11 +1,16 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Box, Button, Flex, Heading, RadioGroup, Text, TextField, ThemePanel } from '@radix-ui/themes'
+import { useTheme } from 'next-themes'
+import { Box, Button, Flex, Heading, IconButton, RadioGroup, Text, TextField } from '@radix-ui/themes'
+import { AppBar } from '@/components/AppBar'
+import { ThemePanelInline } from '@/components/ThemePanelInline'
+import { ExitIcon } from '@radix-ui/react-icons'
 import { DatePicker } from '@/components/DatePicker'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { exportAllToCsv, downloadCsv } from '@/lib/export-csv'
 import { todayLocalISO } from '@/lib/format-utils'
+import layoutStyles from '@/styles/layout.module.css'
 import styles from './ProfilePage.module.css'
 
 const MIN_PASSWORD_LENGTH = 6
@@ -26,6 +31,7 @@ function monthAgo(): string {
 export function ProfilePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { setTheme } = useTheme()
 
   // --- Состояние ---
   const [exporting, setExporting] = useState(false)
@@ -93,33 +99,40 @@ export function ProfilePage() {
   }
 
   return (
-    <Box p="4" className={styles.container}>
-      <Heading size="4" mb="4">
-        Профиль
-      </Heading>
+    <Box className={layoutStyles.pageContainer}>
+      <Flex direction="column" gap="5" mt="-5">
+
+      <AppBar 
+      title="Профиль" 
+      actions={
+        <IconButton 
+        variant="classic" 
+        color="red" 
+        size="3" 
+        radius="full" 
+        onClick={handleSignOut} 
+        aria-label="Выйти"><ExitIcon width={18} height={18} />
+        </IconButton>} />
 
       {/* Аккаунт */}
-      <Box mb="4">
-        <Heading size="3" mb="2">
+      <Flex direction="column" gap="1">
+        <Heading size="3" >
           Аккаунт
         </Heading>
         {user?.email && (
-          <Text as="p" size="2" mb="2">
+          <Text as="p" size="2" >
             {user.email}
           </Text>
         )}
-        <Button variant="soft" color="red" onClick={handleSignOut}>
-          Выйти
-        </Button>
-      </Box>
+      </Flex>
 
       {/* Смена пароля */}
-      <Box mb="4" py="3" className={styles.sectionDivider}>
-        <Heading size="3" mb="2">
-          Сменить пароль
+      <Flex direction="column" gap="2">
+        <Heading size="3" >
+          Смена пароля
         </Heading>
         <form onSubmit={handleChangePassword}>
-          <Flex direction="column" gap="3">
+          <Flex direction="column" gap="2">
             <TextField.Root
               placeholder="Новый пароль (минимум 6 символов)"
               type="password"
@@ -145,60 +158,81 @@ export function ProfilePage() {
                 {passwordMessage.text}
               </Text>
             )}
-            <Button type="submit" disabled={passwordChanging}>
-              {passwordChanging ? 'Сохранение…' : 'Сменить пароль'}
-            </Button>
+            
+            <Flex align="start">
+              <Button 
+              size="3"
+              color="gray"
+              variant="outline"
+              type="submit" 
+              disabled={passwordChanging}
+              >
+                {passwordChanging ? 'Сохранение…' : 'Сменить пароль'}
+              </Button>
+            </Flex>
           </Flex>
         </form>
-      </Box>
-
+      </Flex>
+      
       {/* Экспорт в CSV */}
-      <Box py="3" className={styles.sectionDivider}>
-        <Heading size="3" mb="2">
-          Экспорт в CSV
-        </Heading>
-        <Text as="p" size="2" color="gray" mb="2">
-          Скачать дела и записи в один CSV‑файл.
-        </Text>
+      <Flex direction="column" gap="2">
+        <Flex direction="column" gap="1">
+          <Heading size="3">
+            Экспорт в CSV
+          </Heading>
+          <Text as="p" size="2" color="gray">
+            Скачать дела и записи в один CSV‑файл
+          </Text>
+        </Flex>
         <RadioGroup.Root value={periodMode} onValueChange={(v) => setPeriodMode(v as 'all' | 'custom')}>
-          <Flex direction="column" gap="2" mb="3">
-            <Text as="label" size="2" className={styles.radioLabel}>
+          <Flex direction="column" gap="1">
+            <Text as="label" size="3" className={styles.radioLabel}>
               <RadioGroup.Item value="all" />
               Весь период
             </Text>
-            <Text as="label" size="2" className={styles.radioLabel}>
+            <Text as="label" size="3" className={styles.radioLabel}>
               <RadioGroup.Item value="custom" />
               Свой период
             </Text>
           </Flex>
         </RadioGroup.Root>
         {periodMode === 'custom' && (
-          <Flex gap="2" mb="3" wrap="wrap">
+          <Flex gap="2" >
             <Flex align="center" gap="2">
               <Text size="2">С</Text>
               <DatePicker value={startDate} onChange={setStartDate} maxDate={endDate} />
             </Flex>
             <Flex align="center" gap="2">
-              <Text size="2">По</Text>
+              <Text size="2">по</Text>
               <DatePicker value={endDate} onChange={setEndDate} minDate={startDate} />
             </Flex>
           </Flex>
         )}
-        <Button onClick={handleExportCsv} disabled={exporting}>
-          {exporting ? 'Экспорт…' : 'Скачать CSV'}
-        </Button>
-      </Box>
+        <Flex align="start">
+          <Button 
+          size="3" 
+          color="gray" 
+          variant="outline"
+          onClick={handleExportCsv} 
+          disabled={exporting}>
+            {exporting ? 'Экспорт…' : 'Скачать CSV'}
+          </Button>
+        </Flex>
+      </Flex>
 
-      {/* Внешний вид — настройки сохраняются в cookies браузера */}
-      <Box py="3" className={styles.sectionDivider}>
-        <Heading size="3" mb="2">
-          Внешний вид
-        </Heading>
-        <Text as="p" size="2" color="gray" mb="2">
-          Настройте тему приложения. Выбор сохраняется в cookies браузера.
-        </Text>
-        <ThemePanel />
-      </Box>
+        {/* Внешний вид — настройки сохраняются в cookies браузера */}
+        <Flex direction="column" gap="2">
+          <Flex direction="column" gap="1">
+            <Heading size="3">
+              Внешний вид
+            </Heading>
+            <Text as="p" size="2" color="gray" >
+              Настройте тему приложения. По умолчанию — системная (светлая/тёмная). Выбор сохраняется в localStorage.
+            </Text>
+          </Flex>
+          <ThemePanelInline onAppearanceChange={(v) => setTheme(v)} />
+        </Flex>
+      </Flex>
     </Box>
   )
 }

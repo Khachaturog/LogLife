@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import AirDatepicker from 'air-datepicker'
 import localeRu from 'air-datepicker/locale/ru'
+import { TextField } from '@radix-ui/themes'
 
 /** Формат даты для API: YYYY-MM-DD */
 const DATE_FORMAT = 'yyyy-MM-dd'
@@ -11,8 +12,15 @@ function parseDate(value: string): Date | null {
   return isNaN(d.getTime()) ? null : d
 }
 
+/** Определение iOS/Android для использования нативного date picker */
+function isMobileDevice(): boolean {
+  if (typeof navigator === 'undefined') return false
+  if (navigator.userAgentData?.mobile === true) return true
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+}
+
 /**
- * DatePicker на базе Air Datepicker.
+ * DatePicker: на десктопе — Air Datepicker, на iOS/Android — нативный input type="date".
  * value и onChange в формате YYYY-MM-DD.
  */
 export function DatePicker({
@@ -35,8 +43,15 @@ export function DatePicker({
   const inputRef = useRef<HTMLInputElement>(null)
   const dpRef = useRef<AirDatepicker | null>(null)
 
+  // Определение мобильного — после монтирования, чтобы избежать расхождений при SSR
+  const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
-    if (!inputRef.current || disabled) return
+    setIsMobile(isMobileDevice())
+  }, [])
+
+  // Air Datepicker — только на десктопе (хуки вызываем всегда, чтобы соблюдать Rules of Hooks)
+  useEffect(() => {
+    if (isMobile || !inputRef.current || disabled) return
 
     const parsed = value ? parseDate(value) : null
     const dp = new AirDatepicker(inputRef.current, {
@@ -57,40 +72,46 @@ export function DatePicker({
       dp.destroy()
       dpRef.current = null
     }
-  }, [disabled])
+  }, [disabled, isMobile])
 
   // Синхронизация при изменении value извне (controlled)
   useEffect(() => {
-    if (!dpRef.current || disabled) return
+    if (isMobile || !dpRef.current || disabled) return
     const parsed = value ? parseDate(value) : null
     dpRef.current.update({
       selectedDates: parsed ? [parsed] : [],
       minDate: minDate ? parseDate(minDate) ?? undefined : undefined,
       maxDate: maxDate ? parseDate(maxDate) ?? undefined : undefined,
     })
-  }, [value, minDate, maxDate, disabled])
+  }, [value, minDate, maxDate, disabled, isMobile])
 
+  // На iOS/Android — нативный date picker, но в оболочке Radix TextField
+  if (isMobile) {
+    return (
+      <TextField.Root
+        size="3"
+        type="date"
+        id={id}
+        value={value || ''}
+        onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+          onChange(event.target.value)
+        }
+        min={minDate}
+        max={maxDate}
+        disabled={disabled}
+      />
+    )
+  }
+
+  // На десктопе — Air Datepicker, инициализируем его на input
   return (
-    <input
+    <TextField.Root
       ref={inputRef}
+      size="3"
       type="text"
       id={id}
-      readOnly
-      disabled={disabled}
       placeholder={placeholder}
-      defaultValue={value}
-      className="date-picker-input"
-      style={{
-        width: '100%',
-        padding: 'var(--space-2)',
-        borderRadius: 'var(--radius-2)',
-        border: '1px solid var(--gray-a7)',
-        background: 'var(--color-background)',
-        color: 'var(--gray-12)',
-        fontSize: 'var(--font-size-2)',
-        fontFamily: 'inherit',
-        cursor: 'pointer',
-      }}
+      disabled={disabled}
     />
   )
 }

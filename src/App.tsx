@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Box, Flex, Text } from '@radix-ui/themes'
+import { PageLoading } from '@/components/PageLoading'
 import { useAuth } from '@/lib/auth-context'
 import { TabBar, useTabBarVisible } from '@/components/TabBar'
 import styles from './App.module.css'
@@ -24,11 +25,7 @@ function App() {
   const isLoginPage = location.pathname === '/login'
 
   if (loading) {
-    return (
-      <Box p="4" className={styles.loading}>
-        <Text>Загрузка…</Text>
-      </Box>
-    )
+    return <PageLoading />
   }
 
   if (!user && !isLoginPage) {
@@ -40,13 +37,7 @@ function App() {
   return (
     <Flex direction="column" className={styles.app}>
       <Box className={`${styles.main} ${showTabBar ? styles.mainWithTabBar : ''}`}>
-        <Suspense
-          fallback={
-            <Box p="4" className={styles.suspenseFallback}>
-              <Text>Загрузка…</Text>
-            </Box>
-          }
-        >
+        <Suspense fallback={<PageLoading />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<DeedsListPage />} />

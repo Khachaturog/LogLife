@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Card, Flex, Text } from '@radix-ui/themes'
+import { Avatar, Card, Flex, Text } from '@radix-ui/themes'
 import type { BlockRow, RecordRow, ValueJson } from '@/types/database'
 import { formatAnswer, previewAnswer } from '@/lib/format-utils'
 import styles from './RecordCard.module.css'
@@ -13,16 +13,18 @@ type RecordCardProps = {
   blocks?: BlockRow[]
   /** Префикс «дело» для страницы истории: эмодзи и название */
   deedPrefix?: { emoji: string; name: string }
+  /** Эмодзи для аватарки, когда deedPrefix не передан (например на странице дела) */
+  avatarFallback?: string
   /** state для Link (например { from: 'history' }) */
   linkState?: Record<string, string>
 }
 
 /**
  * Карточка записи в списке.
- * Единый дизайн для страницы истории и просмотра дела.
- * Клик — переход на просмотр записи.
+ * Вся карточка = ссылка (Card asChild + Link): паддинги и hover от Radix, клик по любой области ведёт на /records/:id.
+ * Используется на странице истории и на странице просмотра дела.
  */
-export function RecordCard({ record, blocks = [], deedPrefix, linkState }: RecordCardProps) {
+export function RecordCard({ record, blocks = [], deedPrefix, avatarFallback, linkState }: RecordCardProps) {
   const sortedAnswers = [...(record.record_answers ?? [])].sort((a, b) => {
     const blockA = blocks.find((x) => x.id === a.block_id)
     const blockB = blocks.find((x) => x.id === b.block_id)
@@ -36,30 +38,43 @@ export function RecordCard({ record, blocks = [], deedPrefix, linkState }: Recor
       const block = blocks.find((b) => b.id === a.block_id)
       return block ? formatAnswer(a.value_json as ValueJson, block) : previewAnswer(a.value_json as ValueJson)
     })
-    .join(', ') || '—'
+    .join(' · ') || '—'
 
   const timeStr = record.record_time?.slice(0, 5) ?? ''
 
+  const emoji = deedPrefix?.emoji ?? avatarFallback ?? '📋'
+  const title = deedPrefix?.name ?? null
+
   return (
-    <Card>
+    <Card asChild>
       <Link
         to={`/records/${record.id}`}
         state={linkState}
         className={styles.recordLink}
       >
-        <Flex direction="column" gap="1">
-          <Text size="2" weight="medium">
-            {deedPrefix && (
-              <>
-                {deedPrefix.emoji} {deedPrefix.name}
-                {' — '}
-              </>
-            )}
-            {record.record_date} {timeStr}
-          </Text>
-          <Text size="2" color="gray">
-            {preview}
-          </Text>
+        <Flex align="start" gap="2">
+          <Avatar
+            size="1"
+            radius="large"
+            color="gray"
+            variant="soft"
+            fallback={emoji}
+          />
+          <Flex direction="column" gap="1" flexGrow="1">
+            <Flex justify="between" align="center" gap="3">
+              {title ? (
+                <Text weight="medium" truncate>
+                  {title}
+                </Text>
+              ) : null}
+              <Text as="p" size="2" color="gray">
+                {timeStr}
+              </Text>
+            </Flex>
+            <Text as="p" size="2" color="gray">
+              {preview}
+            </Text>
+          </Flex>
         </Flex>
       </Link>
     </Card>

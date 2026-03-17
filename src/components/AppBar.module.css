@@ -1,31 +1,35 @@
-/* Верхняя панель для внутренних страниц */
+/* Верхняя панель — 100% по ширине, выходит за пределы pageContainer,
+ * чтобы нижняя обводка при скролле шла от края до края. */
 .appBar {
-  padding: var(--space-2) 0;
-  margin-bottom: var(--space-2);
-  border-bottom: 1px solid var(--gray-a4);
+  margin-left: -16px;
+  margin-right: -16px;
+  width: calc(100% + 32px);
+  padding: var(--space-2) 16px var(--space-3) 16px;
+  /* border-radius: 0 0 var(--radius-large) var(--radius-large); */
+}
+
+/* На мобилках — sticky, чтобы хедер оставался видимым при скролле */
+@media (max-width: 768px) {
+  .appBar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--color-background);
+  }
+}
+
+/* При скролле — обводка снизу и тень для визуального отделения от контента */
+.appBarScrolled {
+  border-bottom: 1px solid var(--gray-a6);
+  box-shadow: 0 2px 8px var(--gray-a3);
 }
 
 .row {
   flex-wrap: wrap;
 }
 
-.backLink,
-.backButton {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--gray-11);
-  text-decoration: none;
-}
-
-.backLink:hover,
-.backButton:hover {
-  color: var(--gray-12);
-}
-
 .title {
   flex: 1;
-  min-width: 0;
 }
 
 .actions {

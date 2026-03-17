@@ -72,7 +72,7 @@ export function formatDate(isoDate: string): string {
   yesterday.setDate(yesterday.getDate() - 1)
   if (d.toDateString() === today.toDateString()) return 'Сегодня'
   if (d.toDateString() === yesterday.toDateString()) return 'Вчера'
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).replace(/\s*г\.?\s*$/, '')
 }
 
 /** Краткий превью ответа для списков (число, текст до 20–25 символов, галочки и т.д.) */

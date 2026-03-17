@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Box, Button, Checkbox, Flex, RadioGroup, Select, SegmentedControl, Text, TextArea, TextField } from '@radix-ui/themes'
+import { Box, CheckboxGroup, Flex, IconButton, RadioGroup, Select, SegmentedControl, Text, TextArea, TextField } from '@radix-ui/themes'
 import { AppBar } from '@/components/AppBar'
+import { PageLoading } from '@/components/PageLoading'
+import { CheckIcon, MinusIcon, PlusIcon } from '@radix-ui/react-icons'
 import { api } from '@/lib/api'
 import { DatePicker } from '@/components/DatePicker'
 import { DurationInput } from '@/components/DurationInput'
 import { todayLocalISO, nowTimeLocal } from '@/lib/format-utils'
 import type { BlockConfig, BlockRow, DeedWithBlocks, ValueJson } from '@/types/database'
+import layoutStyles from '@/styles/layout.module.css'
 import styles from './FillFormPage.module.css'
 
 function getBlockOptions(block: BlockRow): { id: string; label: string }[] {
@@ -96,18 +99,14 @@ export function FillFormPage() {
 
   // --- Рендер ---
   if (loading) {
-    return (
-      <Box p="4">
-        <Text>Загрузка…</Text>
-      </Box>
-    )
+    return <PageLoading onBack={() => navigate(-1)} message="Загружаем форму…" />
   }
 
   if (!deed) {
     return (
       <Box p="4">
         <AppBar onBack={() => navigate(-1)} />
-        <Text as="p" color="crimson" mt="2">
+        <Text as="p" color="crimson">
           Дело не найдено.
         </Text>
       </Box>
@@ -115,26 +114,45 @@ export function FillFormPage() {
   }
 
   return (
-    <Box p="4" className={styles.container}>
-      <AppBar onBack={() => navigate(-1)} title={`${deed.emoji} ${deed.name}`} />
-
-      {deed.description && (
-        <Text as="p" size="2" color="gray" mb="4" mt="2">
-          {deed.description}
-        </Text>
-      )}
-
+    <Box className={layoutStyles.pageContainer}>
       <form onSubmit={handleSubmit}>
-        <Flex direction="column" gap="4">
+        
+        <AppBar
+          onBack={() => navigate(-1)}
+          title={`${deed.emoji} ${deed.name}`}
+          actions={
+            <IconButton
+              size="3"
+              color="classic"
+              radius='full'
+              variant="classic"
+              type="submit"
+              disabled={!canSubmit}
+              aria-label={saving ? 'Сохранение…' : 'Добавить запись'}
+            >
+              <CheckIcon width={18} height={18} />
+            </IconButton>
+          }
+        />
+
+        <Flex direction="column" mb="3">
+          {deed.description && (
+            <Text as="p" size="2" color="gray" >
+              {deed.description}
+            </Text>
+          )}
+        </Flex>
+        <Flex direction="column" gap="4" >
           {/* Дата и время */}
-          <Flex gap="3" wrap="wrap">
-            <Flex direction="column" gap="1" className={styles.dateTimeField}>
+          <Flex gap="4">
+            <Flex direction="column" gap="1">
               <Text size="2" weight="medium">Дата</Text>
               <DatePicker value={recordDate} onChange={setRecordDate} />
             </Flex>
-            <Flex direction="column" gap="1" className={styles.dateTimeField}>
+            <Flex direction="column" gap="1">
               <Text size="2" weight="medium">Время</Text>
               <TextField.Root
+                size="3"
                 type="time"
                 value={recordTime}
                 onChange={(e) => setRecordTime(e.target.value)}
@@ -149,14 +167,59 @@ export function FillFormPage() {
                 {block.title}{block.is_required && ' *'}
               </Text>
               {block.block_type === 'number' && (
-                <TextField.Root
-                  type="number"
-                  value={(answers[block.id] as { number?: number } | undefined)?.number ?? ''}
-                  onChange={(e) => setAnswer(block.id, { number: Number(e.target.value) || 0 })}
-                />
+                <Flex gap="2" align="center" >
+                  <TextField.Root 
+                    style={{ flex: 1 }}
+                    size="3"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    value={(answers[block.id] as { number?: number } | undefined)?.number ?? ''}
+                    onChange={(e) =>
+                      setAnswer(block.id, {
+                        number:
+                          e.target.value === ''
+                            ? undefined
+                            : Math.max(0, Number(e.target.value)),
+                      })
+                    }
+                  />
+                  <IconButton
+                    size="3"
+                    color="gray"
+                    variant="classic"
+                    radius='full'
+                    type="button"
+                    aria-label="Уменьшить значение"
+                    onClick={() => {
+                      const current =
+                        (answers[block.id] as { number?: number } | undefined)?.number ?? 0
+                      const next = Math.max(0, current - 1)
+                      setAnswer(block.id, { number: next })
+                    }}
+                  >
+                    <MinusIcon />
+                  </IconButton>
+                  <IconButton
+                    size="3"
+                    color="gray"
+                    variant="classic"
+                    radius='full'
+                    type="button"
+                    aria-label="Увеличить значение"
+                    onClick={() => {
+                      const current =
+                        (answers[block.id] as { number?: number } | undefined)?.number ?? 0
+                      setAnswer(block.id, { number: current + 1 })
+                    }}
+                  >
+                    <PlusIcon />
+                  </IconButton>
+                </Flex>
               )}
               {block.block_type === 'text_short' && (
                 <TextField.Root
+                  size="3"
                   value={(answers[block.id] as { text?: string } | undefined)?.text ?? ''}
                   onChange={(e) => setAnswer(block.id, { text: e.target.value })}
                 />
@@ -171,6 +234,7 @@ export function FillFormPage() {
               )}
               {block.block_type === 'single_select' && (
                 <Select.Root
+                  size="3"
                   value={(answers[block.id] as { optionId?: string } | undefined)?.optionId || undefined}
                   onValueChange={(v) => setAnswer(block.id, { optionId: v })}
                 >
@@ -183,23 +247,24 @@ export function FillFormPage() {
                 </Select.Root>
               )}
               {block.block_type === 'multi_select' && (
-                <Flex direction="column" gap="2">
-                  {getBlockOptions(block).map((opt) => {
-                    const current = (answers[block.id] as { optionIds?: string[] } | undefined)?.optionIds ?? []
-                    return (
-                      <Text as="label" key={opt.id} size="2" className={styles.checkboxLabel}>
-                        <Checkbox
-                          checked={current.includes(opt.id)}
-                          onCheckedChange={(checked) => {
-                            const next = checked ? [...current, opt.id] : current.filter((id) => id !== opt.id)
-                            setAnswer(block.id, { optionIds: next })
-                          }}
-                        />
-                        {opt.label}
+                <CheckboxGroup.Root
+                  size="3"
+                  value={
+                    (answers[block.id] as { optionIds?: string[] } | undefined)?.optionIds ?? []
+                  }
+                  onValueChange={(nextValues) => {
+                    // Сохраняем выбранные опции блока в ответе
+                    setAnswer(block.id, { optionIds: nextValues })
+                  }}
+                >
+                  <Flex direction="column" gap="1">
+                    {getBlockOptions(block).map((opt) => (
+                      <Text as="label" key={opt.id} size="1" className={styles.checkboxLabel}>
+                        <CheckboxGroup.Item value={opt.id}>{opt.label}</CheckboxGroup.Item>
                       </Text>
-                    )
-                  })}
-                </Flex>
+                    ))}
+                  </Flex>
+                </CheckboxGroup.Root>
               )}
               {block.block_type === 'scale' && (
                 <SegmentedControl.Root
@@ -228,6 +293,7 @@ export function FillFormPage() {
               )}
               {block.block_type === 'yes_no' && (
                 <RadioGroup.Root
+                  size="3"
                   value={
                     (answers[block.id] as { yesNo?: boolean } | undefined)?.yesNo === true
                       ? 'true'
@@ -238,11 +304,11 @@ export function FillFormPage() {
                   onValueChange={(v) => setAnswer(block.id, { yesNo: v === 'true' })}
                 >
                   <Flex gap="3">
-                    <Text as="label" size="2" className={styles.checkboxLabel}>
+                    <Text as="label" size="3" className={styles.checkboxLabel}>
                       <RadioGroup.Item value="true" />
                       Да
                     </Text>
-                    <Text as="label" size="2" className={styles.checkboxLabel}>
+                    <Text as="label" size="3" className={styles.checkboxLabel}>
                       <RadioGroup.Item value="false" />
                       Нет
                     </Text>
@@ -257,9 +323,6 @@ export function FillFormPage() {
               Заполните все обязательные поля.
             </Text>
           )}
-          <Button type="submit" size="3" disabled={!canSubmit}>
-            {saving ? 'Сохранение…' : 'Добавить запись'}
-          </Button>
         </Flex>
       </form>
     </Box>

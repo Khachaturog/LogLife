@@ -3,9 +3,10 @@ import { ArrowLeftIcon, ClockIcon, HomeIcon, PersonIcon, ViewGridIcon } from '@r
 import styles from './TabBar.module.css'
 import { Button } from '@radix-ui/themes'
 
-/** Панель скрыта на: виджет кликер, форма создания/редактирования дела, форма создания записи, просмотр/редактирование записи */
+/** Панель скрыта на: логин, виджет кликер, форма создания/редактирования дела, форма создания записи, просмотр/редактирование записи */
 export function useTabBarVisible(): boolean {
   const path = useLocation().pathname
+  if (path === '/login') return false
   if (path.match(/\/deeds\/[^/]+\/(edit|fill)/)) return false
   if (path === '/widgets/clicker') return false
   if (/^\/records\/[^/]+$/.test(path)) return false

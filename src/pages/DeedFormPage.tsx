@@ -2,7 +2,7 @@
  * Страница создания и редактирования дела.
  * Маршрут: /deeds/new (создание) или /deeds/:id (редактирование).
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Separator } from "@radix-ui/themes";
 import {
@@ -18,10 +18,12 @@ import {
   TextField,
 } from "@radix-ui/themes";
 import { AppBar } from "@/components/AppBar";
+import { PageLoading } from "@/components/PageLoading";
 import { EmojiPickerButton } from "@/components/EmojiPickerButton";
-import { ArrowBottomRightIcon, ArrowDownIcon, ArrowUpIcon, PlusIcon, TrashIcon } from "@radix-ui/react-icons";
+import { ArrowBottomRightIcon, ArrowDownIcon, ArrowUpIcon, CheckIcon, PlusIcon, TrashIcon } from "@radix-ui/react-icons";
 import { api } from "@/lib/api";
 import type { BlockConfig, BlockType, DeedWithBlocks } from "@/types/database";
+import layoutStyles from "@/styles/layout.module.css";
 import styles from "./DeedFormPage.module.css";
 
 /** Модель блока в UI — может не иметь id до сохранения в БД */
@@ -163,8 +165,8 @@ function ScaleBlockConfig({
           {hasMiddle && (
             <Button
               type="button"
-              
-              variant="outline"
+              color="gray"
+              variant="surface"
               size="3"
               onClick={() => setExpanded((e) => !e)}
             >
@@ -228,6 +230,7 @@ export function DeedFormPage() {
   const [categoryCustom, setCategoryCustom] = useState(false);
   const [cardColor, setCardColor] = useState("");
   const [blocks, setBlocks] = useState<UiBlock[]>([createDefaultBlock()]);
+  const formRef = useRef<HTMLFormElement>(null);
 
   /** Категории, которые пользователь уже использовал в других делах */
   const userCategories = useMemo(() => {
@@ -410,17 +413,34 @@ export function DeedFormPage() {
 
   if (loading) {
     return (
-      <Box p="4" style={{ minHeight: 44 }}>
-        <Text>Загрузка…</Text>
-      </Box>
+      <PageLoading
+        backHref="/"
+        title="Дело"
+      />
     );
   }
 
   return (
-    <Box p="4" className={styles.container}>
-      <AppBar backHref={id ? `/deeds/${id}` : "/"} title={isNew ? "Новое дело" : "Редактирование дела"} />
+    <Box className={layoutStyles.pageContainer}>
+      <AppBar
+        backHref={id ? `/deeds/${id}` : "/"}
+        title={isNew ? "Новое дело" : "Редактирование дела"}
+        actions={
+          <IconButton
+            size="3"
+            variant="classic"
+            color="accent"
+            radius='full'
+            disabled={!canSave || saving}
+            onClick={() => formRef.current?.requestSubmit()}
+            aria-label={saving ? "Сохранение…" : "Сохранить дело"}
+          >
+            <CheckIcon width={18} height={18} />
+          </IconButton>
+        }
+      />
 
-      <form onSubmit={handleSubmit} style={{ marginTop: "var(--space-4)" }}>
+      <form ref={formRef} onSubmit={handleSubmit} style={{ marginTop: "var(--space-4)" }}>
 
         <Flex direction="column" gap="4">
 
@@ -578,7 +598,8 @@ export function DeedFormPage() {
                   <Flex gap="1">
                     <IconButton
                       size="3"
-                      variant="soft"
+                      color="gray"
+                      variant="surface"
                       disabled={index === 0}
                       onClick={() => moveBlock(index, "up")}
                       aria-label="Переместить блок вверх"
@@ -588,7 +609,8 @@ export function DeedFormPage() {
 
                     <IconButton
                       size="3"
-                      variant="soft"
+                      color="gray"
+                      variant="surface"
                       disabled={index === blocks.length - 1}
                       onClick={() => moveBlock(index, "down")}
                       aria-label="Переместить блок вниз"
@@ -598,7 +620,7 @@ export function DeedFormPage() {
                     
                     <IconButton
                       size="3"
-                      variant="soft"
+                      variant="surface"
                       color="red"
                       onClick={() => removeBlock(index)}
                       aria-label="Удалить блок"
@@ -741,7 +763,8 @@ export function DeedFormPage() {
                         />
                         <IconButton
                           size="3"
-                          variant="soft"
+                          color="gray"
+                          variant="surface"
                           disabled={optIndex === 0}
                           aria-label="Переместить вариант вверх"
                           onClick={() =>
@@ -772,10 +795,11 @@ export function DeedFormPage() {
                         >
                           <ArrowUpIcon />
                         </IconButton>
-                        <IconButton
-                          size="3"
-                          variant="soft"
-                          aria-label="Переместить вариант вниз"
+<IconButton
+                        size="3"
+                        color="gray"
+                        variant="surface"
+                        aria-label="Переместить вариант вниз"
                           disabled={
                             optIndex ===
                             (block.config?.options?.length ?? 1) - 1
@@ -808,11 +832,11 @@ export function DeedFormPage() {
                         >
                           <ArrowDownIcon />
                         </IconButton>
-                        <IconButton
-                          size="3"
-                          variant="soft"
-                          color="red"
-                          aria-label="Удалить вариант"
+<IconButton
+                        size="3"
+                        variant="surface"
+                        color="red"
+                        aria-label="Удалить вариант"
                           onClick={() =>
                             updateBlock(index, (b) => ({
                               ...b,
@@ -831,7 +855,8 @@ export function DeedFormPage() {
                     ))}
                     <Button
                       type="button"
-                      variant="outline"
+                      color="gray"
+                      variant="surface"
                       size="3"
                       aria-label="Добавить вариант"
                       onClick={() =>
@@ -865,20 +890,13 @@ export function DeedFormPage() {
 
           <Button 
           type="button" 
-          variant="soft" 
+          color="gray" 
+          variant="surface" 
           size="3" 
           onClick={addBlock} 
           aria-label="Добавить блок">
             <PlusIcon /> 
             Добавить блок
-          </Button>
-
-          <Button 
-          type="submit" 
-          size="4" 
-          disabled={!canSave || saving}
-          aria-label="Сохранить дело">
-            {saving ? "Сохранение…" : isNew ? "Создать" : "Сохранить"}
           </Button>
         </Flex>
       </form>

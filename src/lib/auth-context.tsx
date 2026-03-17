@@ -32,7 +32,7 @@ function getInitialUser(): User | null {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Инициализируем из localStorage синхронно — нет блокирующей «Загрузки…»
   const [user, setUser] = useState<User | null>(getInitialUser)
-  const [loading, setLoading] = useState(false)
+  const [loading, _setLoading] = useState(false)
 
   useEffect(() => {
     // Фоновая проверка/обновление сессии (в т.ч. refresh токена если нужен)

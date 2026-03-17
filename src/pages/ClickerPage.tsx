@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Box, Button, Flex, Select, Text } from '@radix-ui/themes'
+import { MinusIcon, PlusIcon } from '@radix-ui/react-icons'
+import { Avatar, Box, Button, Card, Flex, IconButton, Select, Text } from '@radix-ui/themes'
 import { AppBar } from '@/components/AppBar'
+import { PageLoading } from '@/components/PageLoading'
 import { api } from '@/lib/api'
 import { todayLocalISO, nowTimeLocal } from '@/lib/format-utils'
 import type { BlockRow, DeedWithBlocks } from '@/types/database'
+import layoutStyles from '@/styles/layout.module.css'
 import styles from './ClickerPage.module.css'
 
-const HOLD_DELAY_MS = 400
+const HOLD_DELAY_MS = 350
 const HOLD_INTERVAL_MS = 80
 
 /** Дела, у которых ровно один блок типа number */
@@ -81,6 +84,16 @@ export function ClickerPage() {
     }, HOLD_DELAY_MS)
   }
 
+  const handlePointerDownMinus = () => {
+    setCount((c) => Math.max(0, c - 1))
+    holdTimeoutRef.current = setTimeout(() => {
+      holdTimeoutRef.current = null
+      holdIntervalRef.current = setInterval(() => {
+        setCount((c) => Math.max(0, c - 1))
+      }, HOLD_INTERVAL_MS)
+    }, HOLD_DELAY_MS)
+  }
+
   const handlePointerUp = () => {
     clearHoldTimers()
   }
@@ -104,42 +117,52 @@ export function ClickerPage() {
 
   // --- Рендер ---
   if (loading) {
-    return (
-      <Box p="4">
-        <Text>Загрузка…</Text>
-      </Box>
-    )
+    return <PageLoading title="Кликер" backHref="/widgets" />
   }
 
   return (
-    <Box p="4" className={styles.container}>
-      <AppBar backHref="/widgets" title="Кликер" />
+    <Flex direction="column" className={`${layoutStyles.pageContainer} ${styles.pageRoot}`}>
+      <Box className={styles.container}>
+        
+        <AppBar backHref="/widgets" title="Кликер" />
 
-      {/* Выбор дела: только с одним блоком «Число» */}
-      <Flex direction="column" gap="2" mb="4" mt="2">
-        <Text size="2" weight="medium">
-          Дело
-        </Text>
-        <Text size="1" color="gray">
-          Доступны дела только с одним блоком «Число»
-        </Text>
-        <Select.Root
-          value={selectedDeedId || undefined}
-          onValueChange={(v) => {
-            setSelectedDeedId(v)
-            setCount(0)
-          }}
-        >
-          <Select.Trigger id="deed-select" placeholder="Выберите дело" />
-          <Select.Content>
-            {clickerDeeds.map((d) => (
-              <Select.Item key={d.id} value={d.id}>
-                {d.emoji} {d.name}
-              </Select.Item>
+      {/* Шаг 1: выбор дела карточками (при входе) */}
+      {!selectedDeedId && clickerDeeds.length > 0 && (
+        <Flex direction="column" gap="3">
+
+          <Flex direction="column" gap="0">
+            <Text size="5" weight="medium">Выберите дело</Text>
+            <Text size="2" color="gray">Доступны дела только с одним блоком «Число»</Text>
+          </Flex>
+
+          <Flex direction="column" gap="2">
+            {clickerDeeds.map((deed) => (
+              <Card
+                key={deed.id}
+                className={styles.deedCard}
+                asChild
+              >
+                <button
+                  type="button"
+                  onClick={() => setSelectedDeedId(deed.id)}
+                  aria-label={`Выбрать ${deed.name}`}
+                >
+                  <Flex align="center" gap="2">
+                  <Avatar
+                  size="3"
+                  radius="large"
+                  color="gray"
+                  variant="soft"
+                  fallback={deed.emoji || '📋'}
+                  />
+                    <Text size="3" weight="medium">{deed.name}</Text>
+                  </Flex>
+                </button>
+              </Card>
             ))}
-          </Select.Content>
-        </Select.Root>
-      </Flex>
+          </Flex>
+        </Flex>
+      )}
 
       {clickerDeeds.length === 0 && !loading && (
         <Text as="p" color="gray" mb="4">
@@ -147,13 +170,33 @@ export function ClickerPage() {
         </Text>
       )}
 
+      {/* Шаг 2: Select + область счётчика (после выбора дела) */}
       {selectedDeed && (
-        <Flex direction="column" gap="4">
+        <>
+        <Flex direction="column" gap="1" mb="4">
+          <Text size="2" color="gray">Дело</Text>
+          <Select.Root
+            size="3"
+            value={selectedDeedId}
+            onValueChange={(v) => setSelectedDeedId(v)}
+          >
+            <Select.Trigger id="deed-select" />
+            <Select.Content>
+              {clickerDeeds.map((d) => (
+                <Select.Item key={d.id} value={d.id}>
+                  {d.name}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Root>
+        </Flex>
+
+        <Flex direction="column" gap="4" className={styles.counterContainer}>
           {/* Область счётчика: клик или удержание для инкремента */}
           <Box
             asChild
             className={styles.counterArea}
-          >
+            >
             <div
               role="button"
               tabIndex={0}
@@ -169,14 +212,55 @@ export function ClickerPage() {
                 }
               }}
             >
-              {count}
+              <Flex direction="column" align="center" className={styles.counterContent}>
+                {count}
+                <Text size="2" color="gray" weight="regular"
+                align="center">
+                  Тапните или удерживайте 
+                  <br />
+                  для увеличения значения
+                  </Text>
+              </Flex>
             </div>
           </Box>
-          <Button size="3" onClick={handleSave} disabled={saving || count === 0}>
+          {/* Кнопки минус/плюс — тап или удержание */}
+          <Flex gap="2" justify="center" mb="4" ml="8" mr="8">
+            <IconButton
+              className={styles.counterButton}
+              size="4"
+              variant="soft"
+              onPointerDown={handlePointerDownMinus}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              disabled={count === 0}
+              aria-label="Уменьшить"
+            >
+              <MinusIcon width={24} height={24} />
+            </IconButton>
+            <IconButton
+              className={styles.counterButton}
+              size="4"
+              variant="soft"
+              onPointerDown={handlePointerDown}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              aria-label="Увеличить"
+            >
+              <PlusIcon width={24} height={24} />
+            </IconButton>
+          </Flex>
+          <Button 
+            size="4" 
+            onClick={handleSave} 
+            disabled={saving || count === 0}>
             {saving ? 'Сохранение…' : 'Сохранить'}
           </Button>
         </Flex>
+        </>
       )}
-    </Box>
+      </Box>
+    </Flex>
   )
 }
