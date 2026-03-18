@@ -54,12 +54,54 @@ export function FillFormPage() {
 
   const blocks = useMemo(() => deed?.blocks ?? [], [deed])
 
+  const hasRequiredBlocks = useMemo(() => blocks.some((b) => b.is_required), [blocks])
+
+  function sanitizeValue(v: ValueJson): ValueJson | null {
+    // Убираем значения, которые визуально выглядят как "пусто" и которые не стоит отправлять на сервер.
+    if ('number' in v) {
+      if (v.number === 0) return null
+      return v
+    }
+    if ('text' in v) {
+      return v.text.trim() === '' ? null : v
+    }
+    if ('optionId' in v) {
+      return v.optionId ? v : null
+    }
+    if ('optionIds' in v) {
+      return v.optionIds.length ? v : null
+    }
+    if ('scaleValue' in v) {
+      return v.scaleValue >= 1 ? v : null
+    }
+    if ('yesNo' in v) {
+      return v // boolean: всегда валиден
+    }
+    if ('durationHms' in v) {
+      const hms = v.durationHms
+      if (hms.length < 8 || !/^\d{2}:\d{2}:\d{2}$/.test(hms)) return null
+      return v
+    }
+    return null
+  }
+
+  const sanitizedAnswers = useMemo(() => {
+    const next: Record<string, ValueJson> = {}
+    for (const [k, v] of Object.entries(answers)) {
+      const sv = sanitizeValue(v)
+      if (!sv) continue
+      next[k] = sv
+    }
+    return next
+  }, [answers])
+
   const requiredMissing = useMemo(() => {
     for (const b of blocks) {
       if (!b.is_required) continue
       const v = answers[b.id]
       if (v === undefined) return true
-      if ('number' in v && v.number === undefined) return true
+      // Для `number` считаем 0 эквивалентом "не заполнено" (и не отправляем такое значение).
+      if ('number' in v && v.number === 0) return true
       if ('text' in v && (v.text ?? '').trim() === '') return true
       if ('optionId' in v && !v.optionId) return true
       if ('optionIds' in v && (!v.optionIds || v.optionIds.length === 0)) return true
@@ -73,10 +115,24 @@ export function FillFormPage() {
     return false
   }, [blocks, answers])
 
-  const canSubmit = !requiredMissing && !saving
+  const hasAnyAnswer = Object.keys(sanitizedAnswers).length > 0
+  // Правило:
+  // - если есть обязательные блоки — можно сохранять только когда они заполнены
+  // - если обязательных блоков нет — можно сохранять только когда есть хотя бы один непустой ответ
+  const canSubmit = !saving && (hasRequiredBlocks ? !requiredMissing : hasAnyAnswer)
 
   function setAnswer(blockId: string, value: ValueJson) {
     setAnswers((prev) => ({ ...prev, [blockId]: value }))
+  }
+
+  function clearAnswer(blockId: string) {
+    // `answers` типизирован как `Record<string, ValueJson>`, но на практике ключ может отсутствовать.
+    // Поэтому используем delete с narrow через `any`, чтобы удалить ключ из состояния.
+    setAnswers((prev) => {
+      const next = { ...prev } as Record<string, ValueJson>
+      delete (next as any)[blockId]
+      return next
+    })
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -84,10 +140,11 @@ export function FillFormPage() {
     if (!deedId || !canSubmit) return
     setSaving(true)
     try {
+      // Используем единый набор "чистых" значений (включая удаление пустых текстов/массивов).
       await api.deeds.createRecord(deedId, {
         record_date: recordDate,
         record_time: recordTime,
-        answers: Object.keys(answers).length ? answers : undefined,
+        answers: Object.keys(sanitizedAnswers).length ? sanitizedAnswers : undefined,
       })
       navigate(-1)
     } catch (err: unknown) {
@@ -123,7 +180,6 @@ export function FillFormPage() {
           actions={
             <IconButton
               size="3"
-              color="classic"
               radius='full'
               variant="classic"
               type="submit"
@@ -175,14 +231,22 @@ export function FillFormPage() {
                     inputMode="decimal"
                     min={0}
                     value={(answers[block.id] as { number?: number } | undefined)?.number ?? ''}
-                    onChange={(e) =>
-                      setAnswer(block.id, {
-                        number:
-                          e.target.value === ''
-                            ? undefined
-                            : Math.max(0, Number(e.target.value)),
-                      })
-                    }
+                    onChange={(e) => {
+                      const raw = e.target.value
+                      if (raw === '') {
+                        clearAnswer(block.id)
+                        return
+                      }
+
+                      const parsed = Number(raw)
+                      // Если браузер возвращает нечисло/0 — считаем это очисткой.
+                      if (!Number.isFinite(parsed) || parsed === 0) {
+                        clearAnswer(block.id)
+                        return
+                      }
+
+                      setAnswer(block.id, { number: Math.max(0, parsed) })
+                    }}
                   />
                   <IconButton
                     size="3"
@@ -195,7 +259,8 @@ export function FillFormPage() {
                       const current =
                         (answers[block.id] as { number?: number } | undefined)?.number ?? 0
                       const next = Math.max(0, current - 1)
-                      setAnswer(block.id, { number: next })
+                      if (next === 0) clearAnswer(block.id)
+                      else setAnswer(block.id, { number: next })
                     }}
                   >
                     <MinusIcon />

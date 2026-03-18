@@ -15,7 +15,9 @@ function parseDate(value: string): Date | null {
 /** Определение iOS/Android для использования нативного date picker */
 function isMobileDevice(): boolean {
   if (typeof navigator === 'undefined') return false
-  if (navigator.userAgentData?.mobile === true) return true
+  // `userAgentData` есть не во всех типах браузеров/средах — делаем narrow через каст.
+  const nav = navigator as Navigator & { userAgentData?: { mobile?: boolean } }
+  if (nav.userAgentData?.mobile === true) return true
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 }
 

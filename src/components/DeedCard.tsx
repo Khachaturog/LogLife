@@ -51,7 +51,6 @@ export function DeedCard({ deed, records }: DeedCardProps) {
         {/* Кнопка добавления записи: переход на /deeds/:id/fill */}
         <IconButton
           size="3"
-          color="accent"
           variant="surface"
           radius="large"
           asChild

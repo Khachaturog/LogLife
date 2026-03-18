@@ -1,1 +1,76 @@
-/* 
+/*
+ * Адаптация air-datepicker под текущую тему Radix (@radix-ui/themes).
+ *
+ * air-datepicker использует собственные CSS-переменные (--adp-*).
+ * Мы подменяем их значениями из Radix, поэтому календарь начинает
+ * менять цвета вместе со всем приложением (light/dark + accent/gray).
+ *
+ * Файл подключается ПОСЛЕ air-datepicker.css (см. main.tsx), поэтому переопределения имеют приоритет.
+ */
+
+.air-datepicker {
+  /* Общая "карточка" календаря */
+  --adp-background-color: var(--color-panel-solid);
+  --adp-background-color-hover: var(--gray-a3);
+  --adp-background-color-active: var(--gray-a4);
+
+  /* Цвета текста */
+  --adp-color: var(--gray-11);
+  --adp-color-secondary: var(--gray-11);
+  --adp-accent-color: var(--accent-9);
+  --adp-color-current-date: var(--accent-9);
+
+  /* Текст/оформление "других месяцев" и disabled */
+  --adp-color-other-month: var(--gray-a9);
+  --adp-color-disabled: var(--gray-a8);
+  --adp-color-disabled-in-range: var(--gray-a8);
+  --adp-color-other-month-hover: var(--gray-a9);
+
+  /* Границы */
+  --adp-border-color: var(--gray-a4);
+  --adp-border-color-inner: var(--gray-a3);
+  --adp-border-color-inline: var(--gray-a5);
+
+  /* Акцент/выделения */
+  --adp-day-name-color: var(--accent-9);
+  --adp-day-name-color-hover: var(--accent-10);
+
+  --adp-cell-background-color-selected: var(--accent-9);
+  --adp-cell-background-color-selected-hover: var(--accent-10);
+
+  /* Выделение диапазона */
+  --adp-cell-background-color-in-range: color-mix(in srgb, var(--accent-9) 10%, transparent);
+  --adp-cell-background-color-in-range-hover: color-mix(in srgb, var(--accent-9) 20%, transparent);
+  --adp-cell-border-color-in-range: var(--accent-9);
+
+  /* Hover/focus у ячеек (когда выделяется фокусом/курсор) */
+  --adp-cell-background-color-hover: var(--gray-a3);
+
+  /* Навигация */
+  --adp-nav-arrow-color: var(--gray-11);
+  --adp-nav-color-secondary: var(--gray-11);
+  --adp-btn-color: var(--accent-9);
+  --adp-btn-color-hover: var(--gray-11);
+  --adp-btn-background-color-hover: var(--gray-a3);
+  --adp-btn-background-color-active: var(--gray-a4);
+
+  /* Состояния in-range для остальных сценариев */
+  --adp-background-color-in-range: color-mix(in srgb, var(--accent-9) 10%, transparent);
+  --adp-background-color-in-range-focused: color-mix(in srgb, var(--accent-9) 20%, transparent);
+  --adp-background-color-selected-other-month: var(--accent-9);
+  --adp-background-color-selected-other-month-focused: var(--accent-10);
+
+  /* Overlay (в т.ч. mobile mode) */
+  --adp-overlay-background-color: rgba(0, 0, 0, 0.35);
+}
+
+/* Стрелка-поинтер у попапа: в исходнике она белая, меняем под тему. */
+.air-datepicker--pointer:after {
+  background: var(--adp-background-color);
+}
+
+/* На тёмной теме чуть более заметная тень/оверлей. */
+.dark .air-datepicker,
+.dark-theme .air-datepicker {
+  --adp-overlay-background-color: rgba(0, 0, 0, 0.55);
+}

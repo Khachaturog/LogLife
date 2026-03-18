@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { Box, Flex, Text } from '@radix-ui/themes'
+import { Box, Flex } from '@radix-ui/themes'
 import { PageLoading } from '@/components/PageLoading'
 import { useAuth } from '@/lib/auth-context'
 import { TabBar, useTabBarVisible } from '@/components/TabBar'
