@@ -1,7 +1,3 @@
-.textArea {
-  min-height: 80px;
-}
-
 .checkboxLabel {
   display: flex;
   align-items: center;

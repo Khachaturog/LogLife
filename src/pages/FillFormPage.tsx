@@ -114,7 +114,7 @@ export function FillFormPage() {
   }
 
   return (
-    <Box className={layoutStyles.pageContainer}>
+    <Box className={layoutStyles.pageContainer} >
       <form onSubmit={handleSubmit}>
         
         <AppBar
@@ -135,7 +135,7 @@ export function FillFormPage() {
           }
         />
 
-        <Flex direction="column" mb="3">
+        <Flex direction="column" >
           {deed.description && (
             <Text as="p" size="2" color="gray" >
               {deed.description}
@@ -229,7 +229,7 @@ export function FillFormPage() {
                   value={(answers[block.id] as { text?: string } | undefined)?.text ?? ''}
                   onChange={(e) => setAnswer(block.id, { text: e.target.value })}
                   placeholder=""
-                  className={styles.textArea}
+                  resize="vertical"
                 />
               )}
               {block.block_type === 'single_select' && (
@@ -303,7 +303,7 @@ export function FillFormPage() {
                   }
                   onValueChange={(v) => setAnswer(block.id, { yesNo: v === 'true' })}
                 >
-                  <Flex gap="3">
+                  <Flex gap="4">
                     <Text as="label" size="3" className={styles.checkboxLabel}>
                       <RadioGroup.Item value="true" />
                       Да

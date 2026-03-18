@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { Box, DropdownMenu, Flex, Heading, IconButton, Text } from '@radix-ui/themes'
+import { Badge, Box, Card, DropdownMenu, Flex, Heading, IconButton, Text } from '@radix-ui/themes'
 import { AppBar } from '@/components/AppBar'
 import { PageLoading } from '@/components/PageLoading'
 import { DotsHorizontalIcon, Pencil1Icon, PlusIcon, TrashIcon } from '@radix-ui/react-icons'
@@ -9,7 +9,7 @@ import { RecordCard } from '@/components/RecordCard'
 import type { DeedWithBlocks, RecordRow } from '@/types/database'
 import layoutStyles from '@/styles/layout.module.css'
 import styles from './DeedViewPage.module.css'
-import { formatDate, pluralRecords, pluralDays } from '@/lib/format-utils'
+import { formatDate, pluralRecords, todayLocalISO } from '@/lib/format-utils'
 import { currentStreak, maxStreak, workdayWeekendCounts } from '@/lib/deed-analytics'
 
 /**
@@ -86,9 +86,59 @@ export function DeedViewPage() {
     }
   }, [records])
 
+  // Количества "сегодня / этот месяц / всего" считаем как количество записей.
+  const displayNumbers = useMemo(() => {
+    const deedBlocks = deed?.blocks ?? []
+    const numericBlocks = deedBlocks
+      .filter((b) => b.block_type === 'number' || b.block_type === 'scale' || b.block_type === 'duration')
+      .sort((a, b) => a.sort_order - b.sort_order)
+
+    // Берем "первый" числовой блок (по sort_order) и суммируем только его значения.
+    const firstNumeric = numericBlocks[0]
+    if (!firstNumeric) return { today: 0, month: 0, total: 0 }
+
+    const todayISO = todayLocalISO()
+
+    const getValueFromAnswer = (valueJson: unknown, blockType: 'number' | 'scale' | 'duration'): number => {
+      // value_json приходит как JSON; здесь просто безопасно достаем нужное поле.
+      const v = valueJson as Partial<{ number: number; scaleValue: number; durationHms: string }>
+      if (blockType === 'number' && typeof v.number === 'number') return Number(v.number) || 0
+      if (blockType === 'scale' && typeof v.scaleValue === 'number') return Number(v.scaleValue) || 0
+      if (blockType === 'duration' && typeof v.durationHms === 'string') {
+        const hms = v.durationHms ?? '0:0:0'
+        const [h, m, s] = hms.split(':').map((x) => parseInt(x, 10) || 0)
+        return h * 3600 + m * 60 + s
+      }
+      return 0
+    }
+
+    const getRecordValue = (r: (typeof records)[number]): number => {
+      const answer = r.record_answers?.find((a) => a.block_id === firstNumeric.id)
+      // Мы знаем, что нас интересует только firstNumeric.block_type.
+      return getValueFromAnswer(answer?.value_json, firstNumeric.block_type as 'number' | 'scale' | 'duration')
+    }
+
+    const total = records.reduce((sum, r) => sum + getRecordValue(r), 0)
+
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = now.getMonth() // 0-11
+
+    const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`
+    const monthEndDate = new Date(year, month + 1, 0).getDate()
+    const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-${String(monthEndDate).padStart(2, '0')}`
+
+    const today = records.filter((r) => r.record_date === todayISO).reduce((sum, r) => sum + getRecordValue(r), 0)
+    const monthTotal = records
+      .filter((r) => r.record_date >= monthStart && r.record_date <= monthEnd)
+      .reduce((sum, r) => sum + getRecordValue(r), 0)
+
+    return { today, month: monthTotal, total }
+  }, [deed, records])
+
   // --- Рендер состояний загрузки и ошибки ---
   if (loading) {
-    return <PageLoading backHref="/" title="Дело" />
+    return <PageLoading backHref="/" title="" />
   }
 
   if (error || !deed) {
@@ -107,7 +157,7 @@ export function DeedViewPage() {
     <Box className={layoutStyles.pageContainer}>
       <AppBar
         backHref="/"
-        title={`${deed.emoji} ${deed.name}`}
+        title=""
         actions={
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>
@@ -134,40 +184,110 @@ export function DeedViewPage() {
           </DropdownMenu.Root>
         }
       />
+    <Flex direction="column" gap="2">
+      <Flex direction="column" gap="2">
+        <Heading size="5">
+          {`${deed.emoji} ${deed.name}`}
+        </Heading>
 
-      {/* Категория и описание */}
-      {deed.category && (
-        <Text as="p" size="2" color="gray" mb="2">
+        {/* {deed.category && (
+          <Text as="p" size="2" color="gray" >
           Категория: {deed.category}
-        </Text>
-      )}
-      {deed.description && (
-        <Text as="p" size="2" mb="4">
-          {deed.description}
-        </Text>
-      )}
+          </Text>
+          )} */}
 
-      {/* Блок аналитики: стрики и рабочие/выходные дни */}
-      {analytics && (
-        <Box py="3" className={styles.analyticsSection}>
-          <Heading size="3" mb="2">
-            Аналитика
-          </Heading>
-          <Text as="p" size="2" mb="1">
-            Текущий стрик: <Text weight="bold">{analytics.currentStreak}</Text> {pluralDays(analytics.currentStreak)},
-            максимальный стрик: <Text weight="bold">{analytics.maxStreak}</Text> {pluralDays(analytics.maxStreak)}.
-          </Text>
+        {deed.description && (
           <Text as="p" size="2">
-            В рабочие дни: {pluralRecords(analytics.workdayWeekend.workday)}, в выходные:{' '}
-            {pluralRecords(analytics.workdayWeekend.weekend)}.
+            {deed.description}
           </Text>
-        </Box>
-      )}
+        )}
+      </Flex>
+
+      <Box py="3" className={styles.analyticsSection}>
+        <Heading size="3" mb="2">
+          Аналитика
+        </Heading>
+
+        <Flex direction="row" gap="2" wrap="wrap" mb="2">
+          <Card style={{ flex: '1' }}>
+            <Flex direction="column" gap="1">
+              <Text size="2" color="gray">Сегодня</Text>
+              <Text weight="bold" size="4">
+                {displayNumbers.today}
+              </Text>
+            </Flex>
+          </Card>
+
+          <Card style={{ flex: '1' }}>
+            <Flex direction="column" gap="1">
+              <Text size="2" color="gray">В этом месяце</Text>
+              <Text weight="bold" size="4">
+                {displayNumbers.month}
+              </Text>
+            </Flex>
+          </Card>
+
+          <Card style={{ flex: '1' }}>
+            <Flex direction="column" gap="1">
+              <Text size="2" color="gray">Всего</Text>
+              <Text weight="bold" size="4">
+                {displayNumbers.total}
+              </Text>
+            </Flex>
+          </Card>
+        </Flex>
+
+        {/* Сырые данные по стрику/рабочие-выходные (показываем только если есть записи) */}
+        {analytics && (
+          <Flex direction="row" gap="2" wrap="wrap">
+
+            <Card style={{ flex: '1' }}>
+              <Flex direction="column" gap="1" mb="2">
+                <Text size="2" color="gray">Текущий стрик</Text>
+                <Text size="4">{analytics.currentStreak}</Text>
+              </Flex>
+
+              <Flex direction="row" gap="1">
+                <Text size="2" color="gray">Максимум:</Text>
+                <Text size="2" >{analytics.maxStreak}</Text>
+              </Flex>
+            </Card>
+
+            <Card style={{ flex: '1' }}>
+              <Flex direction="column" gap="1" mb="2">
+                <Text size="2" color="gray">Всего</Text> 
+                <Text size="4">{pluralRecords(records.length)}</Text> 
+              </Flex>
+
+              <Flex direction="row" gap="2">
+                <Flex direction="row" gap="1">
+                  <Text size="2" color="gray">Рабочие:</Text>
+                  <Text size="2" >{analytics.workdayWeekend.workday}</Text>
+                </Flex>
+                <Text size="2" color="gray">·</Text>
+                <Flex direction="row" gap="1">
+                  <Text size="2" color="gray">Выходные:</Text>
+                  <Text size="2" >{analytics.workdayWeekend.weekend}</Text>
+                </Flex>
+              </Flex>
+            </Card>
+            
+          </Flex>
+          
+        )}
+      </Box>
 
       {/* История записей по датам */}
-      <Heading size="3" mt="4" mb="2">
-        История — {pluralRecords(records.length)}
-      </Heading>
+      <Flex align="center" justify="between" gap="2" mt="4" mb="2">
+        <Heading size="3">История</Heading>
+        <Badge 
+        size="2" 
+        color="gray" 
+        variant="soft" 
+        radius="full">
+          {pluralRecords(records.length)}
+        </Badge>
+      </Flex>
 
       {records.length === 0 ? (
         <Text as="p" color="gray">
@@ -177,9 +297,19 @@ export function DeedViewPage() {
         <Flex direction="column" gap="4">
           {byDate.map(([date, dayRecords]) => (
             <Box key={date}>
-              <Text as="p" weight="medium" size="2" mb="2">
-                {formatDate(date)} ({dayRecords.length})
-              </Text>
+              <Flex justify="between" align="center" gap="2" mb="2">
+                <Text weight="medium">
+                  {formatDate(date)}
+                </Text>
+                <Badge 
+                size="1" 
+                color="gray" 
+                variant="soft" 
+                radius="full">
+                  {dayRecords.length}
+                </Badge>
+              </Flex>
+              
               <Flex direction="column" gap="2">
                 {dayRecords.map((rec) => (
                   <RecordCard
@@ -194,6 +324,7 @@ export function DeedViewPage() {
           ))}
         </Flex>
       )}
+      </Flex>
     </Box>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Box, Button, Checkbox, Flex, Heading, IconButton, RadioGroup, Select, Text, TextArea, TextField } from '@radix-ui/themes'
+import { Box, Button, Checkbox, CheckboxGroup, Flex, Heading, IconButton, RadioGroup, Select, SegmentedControl, Separator, Text, TextArea, TextField } from '@radix-ui/themes'
 import { AppBar } from '@/components/AppBar'
 import { PageLoading } from '@/components/PageLoading'
 import { CheckIcon, Pencil1Icon, TrashIcon } from '@radix-ui/react-icons'
@@ -291,16 +291,16 @@ export function RecordViewPage() {
   }
 
   return (
-    <Box className={layoutStyles.pageContainer}>
+    <Box className={layoutStyles.pageContainer} >
       <AppBar
         backHref={editing ? undefined : backLink}
         onBack={editing ? () => setEditing(false) : undefined}
-        title={`${record.record_date} ${record.record_time?.slice(0, 5) ?? ''}`}
+        title={`Запись`}
         actions={
           editing ? (
             <IconButton 
             variant="classic" 
-            color="accent" 
+              color="indigo" 
             radius='full'
             size="3" 
             onClick={handleSave} 
@@ -313,7 +313,7 @@ export function RecordViewPage() {
             <>
               <IconButton 
               variant="classic" 
-              color="accent" 
+                color="indigo" 
               radius='full' 
               size="3" 
               onClick={() => setEditing(true)} 
@@ -329,43 +329,53 @@ export function RecordViewPage() {
               aria-label="Удалить">
                 <TrashIcon width={18} height={18} />
               </IconButton>
+
+              {/* Актуализировать — только в режиме просмотра при устаревших блоках */}
+              <Separator orientation="vertical" size="1" />
+
+              {hasBlocksToUpdate && (
+                <IconButton
+                  size="3"
+                  variant="classic"
+                  color="indigo"
+                  radius='full'
+                  disabled={!hasAnyValidDraft || savingOutdated}
+                  onClick={handleUpdateAllOutdated}
+                  aria-label={savingOutdated ? 'Сохранение…' : 'Актуализировать'}
+                >
+                  <CheckIcon width={18} height={18} />
+                </IconButton>
+              )}
             </>
           )
         }
       />
 
-      {/* Актуализировать — только в режиме просмотра при устаревших блоках */}
-      {!editing && hasBlocksToUpdate && (
-        <Flex gap="2" mb="4" mt="2" wrap="wrap">
-          <Button
-            size="3"
-            color="gray"
-            variant="surface"
-            disabled={!hasAnyValidDraft || savingOutdated}
-            onClick={handleUpdateAllOutdated}
-          >
-            {savingOutdated ? 'Сохранение…' : 'Актуализировать'}
-          </Button>
-        </Flex>
-      )}
-
       {editing ? (
-        <Flex direction="column" gap="4">
+        <Flex direction="column" >
+
+          {/* Заголовок дела (чтобы было понятно, с чем работаем) */}
+          {deed?.name && (
+            <Heading size="4" weight="medium">
+              {deed.name}
+            </Heading>
+          )}
+
           <Flex gap="3" wrap="wrap">
             <Flex direction="column" gap="1" className={styles.dateTimeField}>
-              <Text size="2" weight="medium">Дата</Text>
+              <Text size="2" weight="medium" as="label" htmlFor="date">Дата</Text>
               <DatePicker value={recordDate} onChange={setRecordDate} />
             </Flex>
 
             <Flex direction="column" gap="1" className={styles.dateTimeField}>
-              <Text size="2" weight="medium">Время</Text>
+              <Text size="2" weight="medium" as="label" htmlFor="time">Время</Text>
               <TextField.Root
+                size="3"
                 type="time"
                 value={recordTime}
                 onChange={(e) => setRecordTime(e.target.value)}
               />
             </Flex>
-            
           </Flex>
 
           {blocks.filter((b) => !b.deleted_at).map((block) => (
@@ -373,6 +383,7 @@ export function RecordViewPage() {
               <Text size="2" weight="medium">{block.title}</Text>
               {block.block_type === 'number' && (
                 <TextField.Root
+                  size="3"
                   type="number"
                   value={(answers[block.id] as { number?: number } | undefined)?.number ?? ''}
                   onChange={(e) => setAnswer(block.id, { number: Number(e.target.value) || 0 })}
@@ -380,18 +391,21 @@ export function RecordViewPage() {
               )}
               {block.block_type === 'text_short' && (
                 <TextField.Root
+                  size="3"
                   value={(answers[block.id] as { text?: string } | undefined)?.text ?? ''}
                   onChange={(e) => setAnswer(block.id, { text: e.target.value })}
                 />
               )}
               {block.block_type === 'text_paragraph' && (
                 <TextArea
+                  size="3"
                   value={(answers[block.id] as { text?: string } | undefined)?.text ?? ''}
                   onChange={(e) => setAnswer(block.id, { text: e.target.value })}
                 />
               )}
               {block.block_type === 'single_select' && (
                 <Select.Root
+                  size="3"
                   value={(answers[block.id] as { optionId?: string } | undefined)?.optionId || undefined}
                   onValueChange={(v) => setAnswer(block.id, { optionId: v })}
                 >
@@ -404,30 +418,41 @@ export function RecordViewPage() {
                 </Select.Root>
               )}
               {block.block_type === 'multi_select' && (
-                <Flex direction="column" gap="2">
-                  {getBlockOptions(block).map((opt) => {
-                    const current = (answers[block.id] as { optionIds?: string[] } | undefined)?.optionIds ?? []
-                    return (
+                <CheckboxGroup.Root
+                  size="3"
+                  value={
+                    (answers[block.id] as { optionIds?: string[] } | undefined)?.optionIds ?? []
+                  }
+                  onValueChange={(nextValues) => {
+                    setAnswer(block.id, { optionIds: nextValues })
+                  }}
+                >
+                  <Flex direction="column" gap="1">
+                    {getBlockOptions(block).map((opt) => (
                       <Text as="label" key={opt.id} size="2" className={styles.checkboxLabel}>
-                        <Checkbox
-                          checked={current.includes(opt.id)}
-                          onCheckedChange={(checked) => {
-                            const next = checked ? [...current, opt.id] : current.filter((id) => id !== opt.id)
-                            setAnswer(block.id, { optionIds: next })
-                          }}
-                        />
-                        {opt.label}
+                        <CheckboxGroup.Item value={opt.id}>{opt.label}</CheckboxGroup.Item>
                       </Text>
-                    )
-                  })}
-                </Flex>
+                    ))}
+                  </Flex>
+                </CheckboxGroup.Root>
               )}
               {block.block_type === 'scale' && (
-                <Flex gap="2" wrap="wrap">
-                  {Array.from({ length: Math.min(10, Math.max(1, (block.config as BlockConfig | null)?.divisions ?? 5)) }, (_, i) => i + 1).map((n) => (
-                    <Button key={n} type="button" variant="soft" size="2" onClick={() => setAnswer(block.id, { scaleValue: n })}>{n}</Button>
+                <SegmentedControl.Root
+                  value={
+                    (answers[block.id] as { scaleValue?: number } | undefined)?.scaleValue?.toString()
+                  }
+                  onValueChange={(v) => setAnswer(block.id, { scaleValue: Number(v) })}
+                  size="2"
+                >
+                  {Array.from(
+                    { length: Math.min(10, Math.max(1, (block.config as BlockConfig | null)?.divisions ?? 5)) },
+                    (_, i) => i + 1
+                  ).map((n) => (
+                    <SegmentedControl.Item key={n} value={String(n)}>
+                      {n}
+                    </SegmentedControl.Item>
                   ))}
-                </Flex>
+                </SegmentedControl.Root>
               )}
               {block.block_type === 'duration' && (
                 <DurationInput
@@ -438,6 +463,7 @@ export function RecordViewPage() {
               )}
               {block.block_type === 'yes_no' && (
                 <RadioGroup.Root
+                  size="3"
                   value={
                     (answers[block.id] as { yesNo?: boolean } | undefined)?.yesNo === true
                       ? 'true'
@@ -447,12 +473,12 @@ export function RecordViewPage() {
                   }
                   onValueChange={(v) => setAnswer(block.id, { yesNo: v === 'true' })}
                 >
-                  <Flex gap="3">
-                    <Text as="label" size="2" className={styles.checkboxLabel}>
+                  <Flex gap="4">
+                    <Text as="label" size="3" className={styles.checkboxLabel}>
                       <RadioGroup.Item value="true" />
                       Да
                     </Text>
-                    <Text as="label" size="2" className={styles.checkboxLabel}>
+                    <Text as="label" size="3" className={styles.checkboxLabel}>
                       <RadioGroup.Item value="false" />
                       Нет
                     </Text>
@@ -463,10 +489,20 @@ export function RecordViewPage() {
           ))}
         </Flex>
       ) : (
-        <Flex direction="column" gap="4">
-          <Text size="2" color="gray">
-            Дата: {record.record_date} {record.record_time?.slice(0, 5)}
-          </Text>
+        <Flex direction="column" gap="4" >
+
+          <Flex direction="column" gap="1">
+            {/* Заголовок дела */}
+            {deed?.name && (
+            <Heading size="4" weight="medium">
+              {deed.name}
+            </Heading>
+            )}
+            <Text size="2" color="gray">
+              Дата: {record.record_date} {record.record_time?.slice(0, 5)}
+            </Text>
+          </Flex>
+
           {blocks.filter((b) => !b.deleted_at).map((block) => {
             const ans = answersByBlockId[block.id] as (RecordAnswerRow & { config_version_id?: string | null }) | undefined
             const versionConfig = ans?.config_version_id ? configByVersion[ans.config_version_id] : null
@@ -580,7 +616,7 @@ export function RecordViewPage() {
                       }
                       onValueChange={(v) => setUpdateDraftValue(block.id, { yesNo: v === 'true' })}
                     >
-                      <Flex gap="3">
+                      <Flex gap="4">
                         <Text as="label" size="2" className={styles.checkboxLabel}>
                           <RadioGroup.Item value="true" />
                           Да
@@ -597,7 +633,8 @@ export function RecordViewPage() {
             )
           })}
           {outdatedAnswers.filter(({ block }) => block?.deleted_at != null).length > 0 && (
-            <Box py="3" className={styles.sectionDivider}>
+            <Box py="3">
+              <Separator size="4" />
               <Heading size="3" mb="2">Удалённые блоки</Heading>
               {outdatedAnswers
                 .filter(({ block }) => block?.deleted_at != null)

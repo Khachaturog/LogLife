@@ -104,7 +104,7 @@ export function HistoryPage() {
           Пока нет записей. Добавьте первую в любом деле.
         </Text>
       ) : (
-        <Flex direction="column" gap="4" mt="2">
+        <Flex direction="column" gap="4">
           {byDate.map(([date, records]) => (
             <Box key={date}>
               <Flex justify="between" align="center" gap="2" mb="2">

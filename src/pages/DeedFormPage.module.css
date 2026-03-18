@@ -1,12 +1,3 @@
-/* .backLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-bottom: 1rem;
-  min-height: 44px;
-  padding: 0.5rem 0;
-} */
-
 .nameField {
   flex: 1;
 }
