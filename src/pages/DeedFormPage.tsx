@@ -4,7 +4,6 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Separator } from "@radix-ui/themes";
 import {
   Box,
   Button,
@@ -88,19 +87,6 @@ const DEFAULT_CATEGORIES = [
   "Семья",
   "Финансы",
   "Продуктивность",
-];
-
-const PASTEL_COLORS = [
-  "#fce4ec",
-  "#f3e5f5",
-  "#e8eaf6",
-  "#e3f2fd",
-  "#e0f2f1",
-  "#e8f5e9",
-  "#f1f8e9",
-  "#fffde7",
-  "#fff8e1",
-  "#fbe9e7",
 ];
 
 /**

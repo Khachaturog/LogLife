@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
-import { Button, Flex, Popover, Spinner } from '@radix-ui/themes'
+import { Button, Flex, Popover } from '@radix-ui/themes'
 import styles from './EmojiPickerButton.module.css'
 
 const EmojiPickerContent = lazy(() =>
