@@ -25,7 +25,7 @@ export function DeedCard({ deed, records }: DeedCardProps) {
         <Link
           to={`/deeds/${deed.id}`}
         >
-          <Flex direction="row" justify="between" align="center">
+          <Flex direction="row" justify="between" align="center" gap="3">
           <Flex align="start" gap="2">
             <Avatar
               size="1"
@@ -35,7 +35,7 @@ export function DeedCard({ deed, records }: DeedCardProps) {
               fallback={deed.emoji || '📋'}
             />
             <Flex direction="column" gap="1">
-              <Flex align="center" gapX="2" gapY="0" wrap="wrap">
+              <Flex align="center" gapX="2" gapY="1" wrap="wrap">
                 <Text weight="medium">{deed.name}</Text>
                 {deed.category && (
                   <Badge size="1" color="gray" radius="large" variant="surface">

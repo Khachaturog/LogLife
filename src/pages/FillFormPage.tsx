@@ -361,7 +361,7 @@ export function FillFormPage() {
                         <Button
                           key={val}
                           type="button"
-                          size="3"
+                          size="2"
                           color="gray"
                           variant="soft"
                           radius="full"

@@ -8,11 +8,10 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    // dev:mobile (localtunnel): страница с https://*.loca.lt — HMR должен идти как wss:443, иначе клиент падает на ws:5173
-    hmr:
-      process.env.VITE_TUNNEL === '1'
-        ? { protocol: 'wss', clientPort: 443 }
-        : undefined,
+    /** Только с туннелем: иначе Vite уйдёт на 5174, а localtunnel останется на 5173 */
+    strictPort: process.env.VITE_TUNNEL === '1',
+    // Не принудительно задавать hmr для туннеля: wss:443 ломает HMR на localhost:5173.
+    // Клиент Vite берёт протокол/хост из import.meta.url (https://*.loca.lt → wss).
   },
   resolve: {
     alias: {

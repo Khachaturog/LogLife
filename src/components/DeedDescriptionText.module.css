@@ -10,12 +10,14 @@
   gap: var(--space-1);
   vertical-align: baseline;
   color: var(--accent-a11);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration: none;
+  animation: underline 0.3s ease-in-out;
 }
 
 .link:hover {
   color: var(--accent-12);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .linkIcon {
