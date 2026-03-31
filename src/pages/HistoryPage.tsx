@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Badge, Box, Flex, Text } from '@radix-ui/themes'
+import { Link } from 'react-router-dom'
+import { Badge, Box, Button, Flex, Heading, Text } from '@radix-ui/themes'
+import { HomeIcon } from '@radix-ui/react-icons'
 import { AppBar } from '@/components/AppBar'
 import { PageLoading } from '@/components/PageLoading'
 import { api } from '@/lib/api'
@@ -86,7 +88,8 @@ export function HistoryPage() {
 
   // --- Основной контент ---
   return (
-    <Box className={layoutStyles.pageContainer}>
+    <Box
+      className={layoutStyles.pageContainer}>
       <AppBar title={`История`} 
       actions={
         <Badge 
@@ -100,9 +103,35 @@ export function HistoryPage() {
       } />
 
       {byDate.length === 0 ? (
-        <Text as="p" color="gray">
-          Пока нет записей. Добавьте первую в любом деле.
-        </Text>
+        <Flex
+          direction="column"
+          align="center"
+          justify="center"
+          flexGrow="1"
+          gap="5"
+          width="100%"
+          style={{ minHeight: 'calc(100dvh - 10rem)' }}
+        >
+          <Flex direction="column" align="center" gap="2">
+            <Heading as="h2" size="5" weight="medium" align="center">
+              Пока нет записей
+            </Heading>
+            <Text size="2" color="gray" align="center">
+              Для появления записей добавь первую в&nbsp;любом деле
+            </Text>
+          </Flex>
+          <Button 
+          size="3" 
+          variant="classic"
+          radius="full"
+          aria-label="Перейти к списку дел"
+          asChild>
+            <Link to="/">
+              <HomeIcon />
+              Перейти к делам
+            </Link>
+          </Button>
+        </Flex>
       ) : (
         <Flex direction="column" gap="5" mt="2">
           {byDate.map(([date, records]) => (

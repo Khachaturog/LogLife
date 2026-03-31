@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTheme } from 'next-themes'
 import { Box, Button, Flex, Heading, IconButton, RadioGroup, Text, TextField } from '@radix-ui/themes'
 import { AppBar } from '@/components/AppBar'
-import { ThemePanelInline } from '@/components/ThemePanelInline'
 import { ExitIcon } from '@radix-ui/react-icons'
 import { DatePicker } from '@/components/DatePicker'
 import { useAuth } from '@/lib/auth-context'
@@ -31,7 +29,6 @@ function monthAgo(): string {
 export function ProfilePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { setTheme } = useTheme()
 
   // --- Состояние ---
   const [exporting, setExporting] = useState(false)
@@ -99,21 +96,36 @@ export function ProfilePage() {
   }
 
   return (
-    <Box className={layoutStyles.pageContainer}>
-      <Flex direction="column" gap="5" mt="-5">
+    <Box
+      className={layoutStyles.pageContainer}
+      style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
+    >
+      <AppBar
+        title="Профиль"
+        actions={
+          <IconButton
+            variant="classic"
+            color="red"
+            size="3"
+            radius="full"
+            onClick={handleSignOut}
+            aria-label="Выйти"
+          >
+            <ExitIcon width={18} height={18} />
+          </IconButton>
+        }
+      />
 
-      <AppBar 
-      title="Профиль" 
-      actions={
-        <IconButton 
-        variant="classic" 
-        color="red" 
-        size="3" 
-        radius="full" 
-        onClick={handleSignOut} 
-        aria-label="Выйти"><ExitIcon width={18} height={18} />
-        </IconButton>} />
-
+      {/* Скролл только здесь: иначе sticky в AppBar ломается (предок с flex + minHeight:0 в App — не тот scrollport) */}
+      <Box
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        <Flex direction="column" gap="5" mt="-5" pb="4">
       {/* Аккаунт */}
       <Flex direction="column" gap="1">
         <Heading size="3" >
@@ -225,20 +237,8 @@ export function ProfilePage() {
           </Button>
         </Flex>
       </Flex>
-
-        {/* Внешний вид — настройки сохраняются в cookies браузера */}
-        <Flex direction="column" gap="2">
-          <Flex direction="column" gap="1">
-            <Heading size="3">
-              Внешний вид
-            </Heading>
-            <Text as="p" size="2" color="gray" >
-              Настройте тему приложения. По умолчанию — системная (светлая/тёмная). Выбор сохраняется в localStorage.
-            </Text>
-          </Flex>
-          <ThemePanelInline onAppearanceChange={(v) => setTheme(v)} />
         </Flex>
-      </Flex>
+      </Box>
     </Box>
   )
 }

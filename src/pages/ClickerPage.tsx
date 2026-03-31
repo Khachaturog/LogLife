@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { MinusIcon, PlusIcon } from '@radix-ui/react-icons'
-import { Avatar, Box, Button, Card, Flex, IconButton, Select, Text } from '@radix-ui/themes'
+import { Avatar, Box, Button, Card, Flex, Heading, IconButton, Select, Text } from '@radix-ui/themes'
 import { AppBar } from '@/components/AppBar'
 import { PageLoading } from '@/components/PageLoading'
 import { api } from '@/lib/api'
@@ -125,9 +126,30 @@ export function ClickerPage() {
       )}
 
       {clickerDeeds.length === 0 && !loading && (
-        <Text as="p" color="gray" mb="4">
-          Нет подходящих дел. Создайте дело с одним блоком «Число».
-        </Text>
+        <Flex
+          direction="column"
+          align="center"
+          justify="center"
+          flexGrow="1"
+          gap="5"
+          width="100%"
+          style={{ minHeight: 'calc(100dvh - 10rem)' }}
+        >
+          <Flex direction="column" align="center" gap="2">
+            <Heading as="h2" size="5" weight="medium" align="center">
+              Нет подходящих дел
+            </Heading>
+            <Text size="2" color="gray" align="center">
+              Создай дело с&nbsp;одним блоком «Число» — тогда кликер сможет с&nbsp;ним работать
+            </Text>
+          </Flex>
+          <Button size="3" variant="classic" radius="full" aria-label="Создать дело" asChild>
+            <Link to="/deeds/new">
+              <PlusIcon />
+              Создать дело
+            </Link>
+          </Button>
+        </Flex>
       )}
 
       {/* Шаг 2: Select + область счётчика (после выбора дела) */}

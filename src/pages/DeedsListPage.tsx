@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Box, Button, Flex, Link as RadixLink, Text } from '@radix-ui/themes'
+import { Box, Button, Flex, Heading, Text } from '@radix-ui/themes'
 import { AppBar } from '@/components/AppBar'
 import { PageLoading } from '@/components/PageLoading'
 import { api } from '@/lib/api'
@@ -8,6 +8,7 @@ import { DeedCard } from '@/components/DeedCard'
 import type { DeedWithBlocks } from '@/types/database'
 import layoutStyles from '@/styles/layout.module.css'
 import type { RecordRow, RecordAnswerRow } from '@/types/database'
+import { PlusIcon } from '@radix-ui/react-icons'
 
 /**
  * Страница списка дел.
@@ -91,15 +92,21 @@ export function DeedsListPage() {
 
   // --- Основной контент ---
   return (
-    <Box className={layoutStyles.pageContainer}>
-      <AppBar 
-      title="Дела" 
-      actions={
-      <Button size="3" variant="ghost" radius="large" color="gray" asChild aria-label="Создать дело">
-        <Link to="/deeds/new">
-          Создать
-        </Link>
-      </Button>} />
+    <Box
+      className={layoutStyles.pageContainer}
+      style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
+    >
+      <AppBar
+        title="Дела"
+        /* В пустом состоянии CTA только в центре экрана — дублировать «Создать» в хедере не нужно */
+        actions={
+          deeds.length > 0 ? (
+            <Button size="3" variant="ghost" radius="large" color="gray" asChild aria-label="Создать дело">
+              <Link to="/deeds/new">Создать</Link>
+            </Button>
+          ) : undefined
+        }
+      />
 
       {/* Фильтр по категориям (скрыт, если нет дел или категорий) */}
       {deeds.length > 0 && categories.length > 0 && (
@@ -128,15 +135,37 @@ export function DeedsListPage() {
         </Flex>
       )}
 
-      {/* Пустое состояние или список карточек */}
+      {/* Пустое состояние: по центру видимой области (minHeight — запас под AppBar и TabBar) */}
       {deeds.length === 0 ? (
-        <Text as="p">
-          Нет дел.{' '}
-          <RadixLink asChild>
-            <Link to="/deeds/new">Создайте первое</Link>
-          </RadixLink>
-          .
-        </Text>
+        <Flex
+          direction="column"
+          align="center"
+          justify="center"
+          flexGrow="1"
+          gap="5"
+          width="100%"
+          style={{ minHeight: 'calc(100dvh - 10rem)' }}
+        >
+          <Flex direction="column" align="center" gap="2">
+            <Heading as="h2" size="5" weight="medium" align="center">
+              Пока нет дел
+            </Heading>
+            <Text size="2" color="gray" align="center">
+              Создай первое дело и&nbsp;начни вести записи
+            </Text>
+          </Flex>
+          <Button 
+          size="3" 
+          variant="classic" 
+          aria-label="Создать дело"
+          radius="full"
+          asChild>
+            <Link to="/deeds/new">
+              <PlusIcon />
+              Создать дело
+            </Link>
+          </Button>
+        </Flex>
       ) : (
         <Flex direction="column" gap="2">
           {/* Карточки дел: клик по левой части — просмотр, кнопка + — добавить запись */}

@@ -37,21 +37,24 @@ function App() {
   return (
     <Flex direction="column" className={styles.app}>
       <Box className={`${styles.main} ${showTabBar ? styles.mainWithTabBar : ''}`}>
-        <Suspense fallback={<PageLoading />}>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<DeedsListPage />} />
-            <Route path="/deeds/new" element={<DeedFormPage />} />
-            <Route path="/deeds/:id" element={<DeedViewPage />} />
-            <Route path="/deeds/:id/edit" element={<DeedFormPage />} />
-            <Route path="/deeds/:id/fill" element={<FillFormPage />} />
-            <Route path="/records/:id" element={<RecordViewPage />} />
-            <Route path="/widgets" element={<WidgetsPage />} />
-            <Route path="/widgets/clicker" element={<ClickerPage />} />
-            <Route path="/history" element={<HistoryPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-          </Routes>
-        </Suspense>
+        {/* Растягиваем маршрут на высоту main — чтобы страницы могли центрировать контент по вертикали */}
+        <Box style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%' }}>
+          <Suspense fallback={<PageLoading />}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/" element={<DeedsListPage />} />
+              <Route path="/deeds/new" element={<DeedFormPage />} />
+              <Route path="/deeds/:id" element={<DeedViewPage />} />
+              <Route path="/deeds/:id/edit" element={<DeedFormPage />} />
+              <Route path="/deeds/:id/fill" element={<FillFormPage />} />
+              <Route path="/records/:id" element={<RecordViewPage />} />
+              <Route path="/widgets" element={<WidgetsPage />} />
+              <Route path="/widgets/clicker" element={<ClickerPage />} />
+              <Route path="/history" element={<HistoryPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+            </Routes>
+          </Suspense>
+        </Box>
       </Box>
 
       <TabBar />
