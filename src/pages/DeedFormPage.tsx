@@ -83,12 +83,37 @@ function createOptionId() {
 }
 
 function createDefaultSelectConfig(): BlockConfig {
+  // «Вариант 1/2» только в placeholder полей — value пустой, пока пользователь не введёт текст
   return {
     options: [
-      { id: createOptionId(), label: "Вариант 1", sort_order: 0 },
-      { id: createOptionId(), label: "Вариант 2", sort_order: 1 },
+      { id: createOptionId(), label: "", sort_order: 0 },
+      { id: createOptionId(), label: "", sort_order: 1 },
     ],
   };
+}
+
+/** Перед API: trim подписей и порядок sort_order; пустых в UI не допускаем — см. selectBlockOptionsValid */
+function normalizeSelectOptionsForPayload(
+  config: BlockConfig | null,
+): BlockConfig | null {
+  if (!config?.options?.length) return config;
+  return {
+    ...config,
+    options: config.options.map((o, i) => ({
+      ...o,
+      label: o.label.trim(),
+      sort_order: i,
+    })),
+  };
+}
+
+/** Для «Один/Несколько из списка»: есть варианты и у каждого непустой текст (не только placeholder). */
+function selectBlockOptionsValid(block: UiBlock): boolean {
+  if (block.block_type !== "single_select" && block.block_type !== "multi_select")
+    return true;
+  const opts = block.config?.options ?? [];
+  if (opts.length === 0) return false;
+  return opts.every((o) => o.label.trim().length > 0);
 }
 
 /** Категории по умолчанию + пользовательские из существующих дел */
@@ -414,9 +439,12 @@ export function DeedFormPage() {
       setCategoryCustom(false);
   }, [allCategories, category, categoryCustom]);
 
-  /** Можно сохранить только при непустом названии и хотя бы одном блоке */
+  /** Сохранение: название, блоки, у списков — у всех вариантов введён текст */
   const canSave = useMemo(
-    () => name.trim().length > 0 && blocks.length > 0,
+    () =>
+      name.trim().length > 0 &&
+      blocks.length > 0 &&
+      blocks.every(selectBlockOptionsValid),
     [name, blocks],
   );
 
@@ -453,14 +481,21 @@ export function DeedFormPage() {
     setSaving(true);
     try {
       // Преобразуем UI-блоки в формат API (добавляем sort_order)
-      const payloadBlocks = blocks.map((b, index) => ({
-        id: b.id,
-        sort_order: index,
-        title: b.title || "Блок",
-        block_type: b.block_type,
-        is_required: b.is_required,
-        config: b.config ?? null,
-      }));
+      const payloadBlocks = blocks.map((b, index) => {
+        const rawConfig = b.config ?? null;
+        const config =
+          b.block_type === "single_select" || b.block_type === "multi_select"
+            ? normalizeSelectOptionsForPayload(rawConfig)
+            : rawConfig;
+        return {
+          id: b.id,
+          sort_order: index,
+          title: b.title || "Блок",
+          block_type: b.block_type,
+          is_required: b.is_required,
+          config,
+        };
+      });
 
       // Цвет heatmap всегда из card_color / темы; отдельный accent_hex в UI не задаём.
       const analyticsPayload: DeedAnalyticsConfigV1 = {
@@ -545,7 +580,8 @@ export function DeedFormPage() {
           </Tabs.List>
 
           <Tabs.Content value="deed">
-        <Flex direction="column" gap="4">
+
+        <Flex direction="column" gap="4" mt="4">
 
           <Flex direction="row" gap="4">
             <Flex direction="column" gap="1">
@@ -642,10 +678,8 @@ export function DeedFormPage() {
           <Flex direction="column" gap="4">
             {/* key = block.id ?? index: у новых блоков нет id, используем индекс */}
             {blocks.map((block, index) => (
-              <Box
+              <Card
                 key={block.id ?? index}
-                p="3"
-                className={styles.blockCard}
               >
                 <Flex align="center" gap="3" mb="2">
                   <Box
@@ -706,66 +740,66 @@ export function DeedFormPage() {
                   </Flex>
                 </Flex>
 
-              <Flex direction="column" gap="2">
-                <Flex direction="column" gap="1">
-                  <Text as="label" size="2" weight="medium">
-                    Тип
-                  </Text>
-                  <Select.Root
-                    size="3"
-                    value={block.block_type}
-                    onValueChange={(nextType) =>
-                      updateBlock(index, (b) => {
-                        let nextConfig: BlockConfig | null = b.config;
-                        if (nextType === "scale")
-                          nextConfig = createDefaultScaleConfig();
-                        else if (
-                          nextType === "single_select" ||
-                          nextType === "multi_select"
-                        ) {
-                          nextConfig = b.config?.options?.length
-                            ? { options: [...b.config!.options!] }
-                            : createDefaultSelectConfig();
-                        } else nextConfig = null;
-                        return {
-                          ...b,
-                          block_type: nextType as BlockType,
-                          config: nextConfig,
-                        };
-                      })
-                    }
-                  >
-                    <Select.Trigger />
-                    <Select.Content className={styles.selectContentConstrained}>
-                      {(Object.keys(BLOCK_TYPE_LABEL) as BlockType[]).map(
-                        (t) => (
-                          <Select.Item key={t} value={t}>
-                            {BLOCK_TYPE_LABEL[t]}
-                          </Select.Item>
-                        ),
-                      )}
-                    </Select.Content>
-                  </Select.Root>
-                </Flex>
+                <Flex direction="column" gap="2">
+                  <Flex direction="column" gap="1">
+                    <Text as="label" size="2" weight="medium">
+                      Тип
+                    </Text>
+                    <Select.Root
+                      size="3"
+                      value={block.block_type}
+                      onValueChange={(nextType) =>
+                        updateBlock(index, (b) => {
+                          let nextConfig: BlockConfig | null = b.config;
+                          if (nextType === "scale")
+                            nextConfig = createDefaultScaleConfig();
+                          else if (
+                            nextType === "single_select" ||
+                            nextType === "multi_select"
+                          ) {
+                            nextConfig = b.config?.options?.length
+                              ? { options: [...b.config!.options!] }
+                              : createDefaultSelectConfig();
+                          } else nextConfig = null;
+                          return {
+                            ...b,
+                            block_type: nextType as BlockType,
+                            config: nextConfig,
+                          };
+                        })
+                      }
+                    >
+                      <Select.Trigger />
+                      <Select.Content className={styles.selectContentConstrained}>
+                        {(Object.keys(BLOCK_TYPE_LABEL) as BlockType[]).map(
+                          (t) => (
+                            <Select.Item key={t} value={t}>
+                              {BLOCK_TYPE_LABEL[t]}
+                            </Select.Item>
+                          ),
+                        )}
+                      </Select.Content>
+                    </Select.Root>
+                  </Flex>
 
-                <Flex direction="column" gap="1">
-                  <Text as="label" size="2" weight="medium">
-                    Вопрос
-                  </Text>
-                  <TextField.Root
-                    size="3"
-                    value={block.title}
-                    onKeyDown={blurInputOnEnter}
-                    onChange={(e) =>
-                      updateBlock(index, (b) => ({
-                        ...b,
-                        title: e.target.value,
-                      }))
-                    }
-                    placeholder="Вопрос"
-                  />
+                  <Flex direction="column" gap="1">
+                    <Text as="label" size="2" weight="medium">
+                      Вопрос
+                    </Text>
+                    <TextField.Root
+                      size="3"
+                      value={block.title}
+                      onKeyDown={blurInputOnEnter}
+                      onChange={(e) =>
+                        updateBlock(index, (b) => ({
+                          ...b,
+                          title: e.target.value,
+                        }))
+                      }
+                      placeholder="Вопрос"
+                    />
+                  </Flex>
                 </Flex>
-              </Flex>
 
                 {/* Конфиг шкалы: деления и подписи — только для block_type === "scale" */}
                 {block.block_type === "scale" && (
@@ -837,7 +871,7 @@ export function DeedFormPage() {
                               };
                             })
                           }
-                          placeholder="Введите название..."
+                          placeholder={`Вариант ${optIndex + 1}`}
                         />
                         <IconButton
                           size="3"
@@ -873,7 +907,7 @@ export function DeedFormPage() {
                         >
                           <ArrowUpIcon />
                         </IconButton>
-<IconButton
+                        <IconButton
                         size="3"
                         color="gray"
                         variant="surface"
@@ -910,7 +944,7 @@ export function DeedFormPage() {
                         >
                           <ArrowDownIcon />
                         </IconButton>
-<IconButton
+                        <IconButton
                         size="3"
                         variant="surface"
                         color="red"
@@ -948,7 +982,7 @@ export function DeedFormPage() {
                                 ...current,
                                 {
                                   id: createOptionId(),
-                                  label: `Вариант ${current.length + 1}`,
+                                  label: "",
                                   sort_order: current.length,
                                 },
                               ],
@@ -962,7 +996,7 @@ export function DeedFormPage() {
                     </Button>
                   </Flex>
                 )}
-              </Box>
+              </Card>
             ))}
           </Flex>
 
@@ -992,6 +1026,7 @@ export function DeedFormPage() {
                     </Text>
                   </Flex>
                   <Switch
+                    size="2"
                     checked={analyticsConfig.summary.enabled}
                     onCheckedChange={(checked) =>
                       setAnalyticsConfig((c) => ({
